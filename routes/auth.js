@@ -23,6 +23,18 @@ router.post('/logout', (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /auth/debug — temporary, shows if env vars are loaded (no values exposed)
+router.get('/debug', (req, res) => {
+  res.json({
+    ADMIN_USERNAME_set: !!process.env.ADMIN_USERNAME,
+    ADMIN_USERNAME_length: (process.env.ADMIN_USERNAME || '').length,
+    ADMIN_PASSWORD_set: !!process.env.ADMIN_PASSWORD,
+    ADMIN_PASSWORD_length: (process.env.ADMIN_PASSWORD || '').length,
+    SESSION_SECRET_set: !!process.env.SESSION_SECRET,
+    NODE_ENV: process.env.NODE_ENV || 'not set',
+  });
+});
+
 // GET /auth/me
 router.get('/me', (req, res) => {
   if (req.session && req.session.authenticated) {
