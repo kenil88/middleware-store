@@ -75,9 +75,6 @@
     .btn-secondary:not(:disabled):hover { background: #e4e5e7; }
     .btn-preview { background: #005bd3; color: #fff; }
     .btn-preview:not(:disabled):hover { background: #0047a7; }
-    .btn-test { background: #fff; color: #008060; border: 1.5px solid #008060; }
-    .btn-test:not(:disabled):hover { background: #f0fdf9; }
-
     /* Progress */
     #progress-section { display: none; }
     .progress-bar-wrap {
@@ -122,14 +119,6 @@
     td { padding: 7px 10px; border-top: 1px solid #f1f2f3; }
     tr:hover td { background: #f9fafb; }
 
-    /* Connection badge */
-    #conn-badge {
-      display: inline-block; padding: 3px 10px; border-radius: 99px;
-      font-size: 12px; font-weight: 600; margin-left: 10px; vertical-align: middle;
-    }
-    .badge-ok { background: #d3f5e3; color: #00622e; }
-    .badge-fail { background: #fce8e6; color: #b81c0c; }
-    .badge-checking { background: #f1f2f3; color: #6d7175; }
   </style>
 </head>
 <body>
@@ -139,12 +128,6 @@
     <button class="btn-secondary" style="font-size:13px;padding:7px 14px;" onclick="logout()">&#128274; Logout</button>
   </div>
   <p class="subtitle">Upload an XML file to bulk-import products into your Shopify store</p>
-
-  <!-- Connection card -->
-  <div class="card">
-    <h2>Shopify Connection</h2>
-    <button class="btn-test" onclick="testConnection()">&#128279; Test Shopify Connection <span id="conn-badge" class="badge-checking">—</span></button>
-  </div>
 
   <!-- Upload card -->
   <div class="card">
@@ -211,19 +194,6 @@
     dz.classList.add('has-file');
     $('btn-preview').disabled = false;
     $('btn-upload').disabled = false;
-  }
-
-  // ── Shopify connection test ───────────────────────────────────────────────────
-  async function testConnection() {
-    const badge = $('conn-badge');
-    badge.className = 'badge-checking'; badge.textContent = 'Checking…';
-    try {
-      const res = await fetch('/api/test');
-      if (res.status === 401) { window.location.href = '/login'; return; }
-      const data = await res.json();
-      badge.className = data.ok ? 'badge-ok' : 'badge-fail';
-      badge.textContent  = data.ok ? `✓ ${data.shop}` : `✗ ${data.error || 'Failed'}`;
-    } catch { badge.className = 'badge-fail'; badge.textContent = '✗ Error'; }
   }
 
   // ── Client-side XML parser (no file upload — avoids Vercel 4.5 MB limit) ─────
