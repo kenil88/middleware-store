@@ -1,10 +1,8 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
-
 const router = express.Router();
 
 // POST /auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', (req, res) => {
   const { username, password } = req.body;
 
   const validUser = username === process.env.ADMIN_USERNAME;
@@ -21,14 +19,13 @@ router.post('/login', async (req, res) => {
 
 // POST /auth/logout
 router.post('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.json({ ok: true });
-  });
+  req.session = null; // cookie-session: set to null to clear
+  res.json({ ok: true });
 });
 
-// GET /auth/me — check if logged in
+// GET /auth/me
 router.get('/me', (req, res) => {
-  if (req.session.authenticated) {
+  if (req.session && req.session.authenticated) {
     res.json({ ok: true, username: req.session.username });
   } else {
     res.status(401).json({ ok: false });
