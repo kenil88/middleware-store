@@ -92,11 +92,18 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   res.end();
 });
 
-// GET /api/sample — download sample XML
+// GET /api/sample — download generic sample XML
 router.get('/sample', (req, res) => {
   res.setHeader('Content-Type', 'application/xml');
   res.setHeader('Content-Disposition', 'attachment; filename="sample-products.xml"');
   res.sendFile(path.join(__dirname, '../sample-product.xml'));
+});
+
+// GET /api/sample-dynamics — download Microsoft Dynamics NAV/BC SOAP sample XML
+router.get('/sample-dynamics', (req, res) => {
+  res.setHeader('Content-Type', 'application/xml');
+  res.setHeader('Content-Disposition', 'attachment; filename="sample-dynamics.xml"');
+  res.sendFile(path.join(__dirname, '../sample-dynamics.xml'));
 });
 
 module.exports = router;

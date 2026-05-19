@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sample Microsoft Dynamics NAV / Business Central SOAP export
+  Compatible with the middleware-store Dynamics parser.
+  Upload this file to /api/upload to push products to Shopify.
+-->
+<Soap:Envelope xmlns:Soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <Soap:Body>
+    <ReadMultiple_Result xmlns="urn:microsoft-dynamics-schemas/page/retailitemlist">
+      <ReadMultiple_Result>
+
+        <RetailItemList>
+          <Key>36;GwAAAAJ7CjAAMAAwADEAMAAwADEAMAAwADE=11;200116275080;</Key>
+          <No>0001001001</No>
+          <Description>IPHONE 16 MERCURY BLUEMOON DIARY BLACK</Description>
+          <Web_Description>IPHONE 16 MERCURY BLUEMOON DIARY FLIP WALLET CASE COVER - BLACK</Web_Description>
+          <BarcodeNo>8809972570083</BarcodeNo>
+          <Unit_Price_Including_VAT>39.95</Unit_Price_Including_VAT>
+          <Unit_Price>36.31818</Unit_Price>
+          <Inventory>183</Inventory>
+          <Item_Category_Code>PHONE COVERS</Item_Category_Code>
+          <Division_Code>ACCESSORIE</Division_Code>
+          <Retail_Product_Code>WALLET/FLIP COVER</Retail_Product_Code>
+          <Item_Family_Code>CORE RANGE</Item_Family_Code>
+          <Attrib_1_Code>MERCURY</Attrib_1_Code>
+          <Attrib_2_Code>BLACK</Attrib_2_Code>
+          <Attrib_3_Code>IPHONE 16</Attrib_3_Code>
+          <Attrib_4_Code>6.1"</Attrib_4_Code>
+          <Season_Code>WEBCORE</Season_Code>
+          <VAT_Prod_Posting_Group>GST10</VAT_Prod_Posting_Group>
+          <Vendor_No>V00026</Vendor_No>
+          <Search_Description>MERCURY BLUEMOON DIARY</Search_Description>
+          <Vendor_No>V00026</Vendor_No>
+          <Sales_Unit_of_Measure>PCS</Sales_Unit_of_Measure>
+          <Profit_Percent>15.86918</Profit_Percent>
+        </RetailItemList>
+
+        <RetailItemList>
+          <Key>36;GwAAAAJ7CjAAMAAwADIAMAAwADIAMAAwADI=11;200116275081;</Key>
+          <No>0001001002</No>
+          <Description>IPHONE 16 MERCURY BLUEMOON DIARY BLUE</Description>
+          <Web_Description>IPHONE 16 MERCURY BLUEMOON DIARY FLIP WALLET CASE COVER - BLUE</Web_Description>
+          <BarcodeNo>8809972570084</BarcodeNo>
+          <Unit_Price_Including_VAT>39.95</Unit_Price_Including_VAT>
+          <Unit_Price>36.31818</Unit_Price>
+          <Inventory>97</Inventory>
+          <Item_Category_Code>PHONE COVERS</Item_Category_Code>
+          <Division_Code>ACCESSORIE</Division_Code>
+          <Retail_Product_Code>WALLET/FLIP COVER</Retail_Product_Code>
+          <Item_Family_Code>CORE RANGE</Item_Family_Code>
+          <Attrib_1_Code>MERCURY</Attrib_1_Code>
+          <Attrib_2_Code>BLUE</Attrib_2_Code>
+          <Attrib_3_Code>IPHONE 16</Attrib_3_Code>
+          <Attrib_4_Code>6.1"</Attrib_4_Code>
+          <Season_Code>WEBCORE</Season_Code>
+          <VAT_Prod_Posting_Group>GST10</VAT_Prod_Posting_Group>
+          <Vendor_No>V00026</Vendor_No>
+          <Search_Description>MERCURY BLUEMOON DIARY</Search_Description>
+          <Sales_Unit_of_Measure>PCS</Sales_Unit_of_Measure>
+          <Profit_Percent>15.86918</Profit_Percent>
+        </RetailItemList>
+
+      </ReadMultiple_Result>
+    </ReadMultiple_Result>
+  </Soap:Body>
+</Soap:Envelope>
