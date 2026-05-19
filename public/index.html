@@ -134,16 +134,15 @@
 </head>
 <body>
 <div class="container">
-  <h1>&#128722; Shopify Product Uploader</h1>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+    <h1>&#128722; Shopify Product Uploader</h1>
+    <button class="btn-secondary" style="font-size:13px;padding:7px 14px;" onclick="logout()">&#128274; Logout</button>
+  </div>
   <p class="subtitle">Upload an XML file to bulk-import products into your Shopify store</p>
 
-  <!-- Auth card -->
+  <!-- Connection card -->
   <div class="card">
-    <h2>Authentication</h2>
-    <div class="field">
-      <label for="secret-input">Admin Secret Key</label>
-      <input type="password" id="secret-input" placeholder="Enter admin secret from .env" />
-    </div>
+    <h2>Shopify Connection</h2>
     <button class="btn-test" onclick="testConnection()">&#128279; Test Shopify Connection <span id="conn-badge" class="badge-checking">—</span></button>
   </div>
 
@@ -159,7 +158,7 @@
     <div class="btn-row">
       <button class="btn-preview" onclick="previewProducts()" id="btn-preview" disabled>&#128269; Preview Products</button>
       <button class="btn-primary" onclick="uploadProducts()" id="btn-upload" disabled>&#128640; Upload to Shopify</button>
-      <a href="/api/sample?secret=" id="sample-link"><button class="btn-secondary" type="button">&#11015;&#65039; Download Sample XML</button></a>
+      <a href="/api/sample"><button class="btn-secondary" type="button">&#11015;&#65039; Download Sample XML</button></a>
     </div>
   </div>
 
@@ -188,6 +187,14 @@
   const $ = id => document.getElementById(id);
   let selectedFile = null;
 
+  // Redirect to login if session expired
+  fetch('/auth/me').then(r => { if (!r.ok) window.location.href = '/login'; });
+
+  async function logout() {
+    await fetch('/auth/logout', { method: 'POST' });
+    window.location.href = '/login';
+  }
+
   // File selection
   $('file-input').addEventListener('change', e => setFile(e.target.files[0]));
   const dz = $('dropzone');
@@ -208,21 +215,13 @@
     $('btn-upload').disabled = false;
   }
 
-  function getSecret() {
-    return $('secret-input').value.trim();
-  }
-
-  function updateSampleLink() {
-    $('sample-link').href = `/api/sample?secret=${encodeURIComponent(getSecret())}`;
-  }
-  $('secret-input').addEventListener('input', updateSampleLink);
-
   async function testConnection() {
     const badge = $('conn-badge');
     badge.className = 'badge-checking';
     badge.textContent = 'Checking…';
     try {
-      const res = await apiFetch('/api/test');
+      const res = await fetch('/api/test');
+      if (res.status === 401) { window.location.href = '/login'; return; }
       const data = await res.json();
       if (data.ok) {
         badge.className = 'badge-ok';
@@ -237,12 +236,6 @@
     }
   }
 
-  function apiFetch(url, options = {}) {
-    const secret = getSecret();
-    const headers = { ...(options.headers || {}), 'x-admin-secret': secret };
-    return fetch(url, { ...options, headers });
-  }
-
   async function previewProducts() {
     if (!selectedFile) return;
     $('btn-preview').disabled = true;
@@ -253,7 +246,8 @@
     fd.append('file', selectedFile);
 
     try {
-      const res = await apiFetch('/api/parse', { method: 'POST', body: fd });
+      const res = await fetch('/api/parse', { method: 'POST', body: fd });
+      if (res.status === 401) { window.location.href = '/login'; return; }
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
       const { count, products } = await res.json();
 
@@ -312,13 +306,9 @@
 
     const fd = new FormData();
     fd.append('file', selectedFile);
-    const secret = getSecret();
 
-    const res = await fetch('/api/upload', {
-      method: 'POST',
-      headers: { 'x-admin-secret': secret },
-      body: fd,
-    });
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    if (res.status === 401) { window.location.href = '/login'; return; }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
