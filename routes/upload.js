@@ -1,19 +1,14 @@
 const express = require('express');
 const multer = require('multer');
-const fs = require('fs');
 const path = require('path');
 const { parseXml } = require('../services/xmlParser');
 const shopify = require('../services/shopifyUploader');
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, '../uploads')),
-  filename: (req, file, cb) => cb(null, `upload_${Date.now()}.xml`),
-});
-
+// Memory storage — serverless environments (Vercel) have no writable disk path
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'text/xml' || file.mimetype === 'application/xml' || file.originalname.endsWith('.xml')) {
       cb(null, true);
@@ -39,57 +34,35 @@ router.post('/parse', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
   try {
-    const xml = fs.readFileSync(req.file.path, 'utf8');
+    const xml = req.file.buffer.toString('utf8');
     const products = await parseXml(xml);
-    fs.unlinkSync(req.file.path);
     res.json({ count: products.length, products });
   } catch (err) {
-    if (req.file?.path) fs.unlink(req.file.path, () => {});
     res.status(422).json({ error: `XML parse error: ${err.message}` });
   }
 });
 
-// POST /api/upload — parse XML and push to Shopify (streaming SSE response)
+// POST /api/upload — parse XML and push to Shopify, returns JSON summary
+// (SSE streaming is not used — Vercel serverless does not support it)
 router.post('/upload', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-  // Server-Sent Events for real-time progress
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders();
-
-  const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
-
   try {
-    const xml = fs.readFileSync(req.file.path, 'utf8');
-    fs.unlinkSync(req.file.path);
-
-    send({ type: 'status', message: 'Parsing XML…' });
+    const xml = req.file.buffer.toString('utf8');
     const products = await parseXml(xml);
-    send({ type: 'parsed', count: products.length, message: `Found ${products.length} product(s)` });
 
     if (products.length === 0) {
-      send({ type: 'done', created: 0, failed: 0, errors: [] });
-      return res.end();
+      return res.json({ created: 0, failed: 0, errors: [], total: 0 });
     }
 
-    send({ type: 'status', message: 'Connecting to Shopify…' });
     await shopify.testConnection();
 
-    send({ type: 'status', message: `Uploading ${products.length} product(s) to Shopify…` });
-
-    const summary = await shopify.bulkUpload(products, (done, total, result) => {
-      send({ type: 'progress', done, total, result });
-    });
-
-    send({ type: 'done', ...summary });
+    const summary = await shopify.bulkUpload(products);
+    res.json({ ...summary, total: products.length });
   } catch (err) {
-    if (req.file?.path) fs.unlink(req.file.path, () => {});
-    send({ type: 'error', message: err.response?.data ? JSON.stringify(err.response.data) : err.message });
+    const message = err.response?.data ? JSON.stringify(err.response.data) : err.message;
+    res.status(500).json({ error: message });
   }
-
-  res.end();
 });
 
 // GET /api/sample — download generic sample XML
