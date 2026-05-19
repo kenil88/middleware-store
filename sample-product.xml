@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<products>
+
+  <!-- Single-variant product -->
+  <product>
+    <title>Classic White T-Shirt</title>
+    <body_html><![CDATA[<p>100% organic cotton, pre-shrunk, unisex fit. Machine washable.</p>]]></body_html>
+    <vendor>Acme Apparel</vendor>
+    <product_type>T-Shirts</product_type>
+    <tags>cotton, unisex, basics</tags>
+    <status>active</status>
+    <variants>
+      <variant>
+        <sku>TS-WHT-M</sku>
+        <price>24.99</price>
+        <compare_at_price>34.99</compare_at_price>
+        <inventory_quantity>150</inventory_quantity>
+        <weight>0.3</weight>
+        <weight_unit>kg</weight_unit>
+        <option1>Medium</option1>
+      </variant>
+    </variants>
+    <images>
+      <image>
+        <src>https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-product-1_large.png</src>
+        <alt>Classic White T-Shirt</alt>
+      </image>
+    </images>
+  </product>
+
+  <!-- Multi-variant product -->
+  <product>
+    <title>Running Sneakers Pro</title>
+    <body_html><![CDATA[<p>Lightweight, breathable running shoe. Available in US sizes 8–11.</p>]]></body_html>
+    <vendor>SpeedFit</vendor>
+    <product_type>Footwear</product_type>
+    <tags>running, sport, mens</tags>
+    <status>active</status>
+    <options>
+      <option><name>Size</name><values><value>US 8</value><value>US 9</value><value>US 10</value><value>US 11</value></values></option>
+    </options>
+    <variants>
+      <variant>
+        <sku>SHOE-RUN-8</sku>
+        <price>89.99</price>
+        <inventory_quantity>20</inventory_quantity>
+        <weight>0.5</weight>
+        <weight_unit>kg</weight_unit>
+        <option1>US 8</option1>
+      </variant>
+      <variant>
+        <sku>SHOE-RUN-9</sku>
+        <price>89.99</price>
+        <inventory_quantity>25</inventory_quantity>
+        <weight>0.5</weight>
+        <weight_unit>kg</weight_unit>
+        <option1>US 9</option1>
+      </variant>
+      <variant>
+        <sku>SHOE-RUN-10</sku>
+        <price>89.99</price>
+        <inventory_quantity>18</inventory_quantity>
+        <weight>0.5</weight>
+        <weight_unit>kg</weight_unit>
+        <option1>US 10</option1>
+      </variant>
+      <variant>
+        <sku>SHOE-RUN-11</sku>
+        <price>89.99</price>
+        <inventory_quantity>12</inventory_quantity>
+        <weight>0.55</weight>
+        <weight_unit>kg</weight_unit>
+        <option1>US 11</option1>
+      </variant>
+    </variants>
+    <images>
+      <image>
+        <src>https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-product-2_large.png</src>
+        <alt>Running Sneakers Pro</alt>
+      </image>
+    </images>
+  </product>
+
+  <!-- Simple product (no variants section — minimal fields) -->
+  <product>
+    <title>Leather Wallet</title>
+    <description>Slim bifold wallet, genuine leather, RFID blocking.</description>
+    <vendor>UrbanCarry</vendor>
+    <product_type>Accessories</product_type>
+    <tags>leather, wallet, rfid, slim</tags>
+    <sku>WALL-BLK-001</sku>
+    <price>39.99</price>
+    <inventory_quantity>200</inventory_quantity>
+    <image_url>https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-product-3_large.png</image_url>
+  </product>
+
+</products>

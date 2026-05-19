@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Product Uploader</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f4f6f8;
+      color: #202223;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+
+    .container { max-width: 760px; margin: 0 auto; }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #008060;
+    }
+    .subtitle { color: #6d7175; font-size: 14px; margin-bottom: 28px; }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #e1e3e5;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #202223; }
+
+    /* Secret input */
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+    .field input {
+      width: 100%; padding: 8px 12px; border: 1px solid #c9cccf; border-radius: 6px;
+      font-size: 14px; outline: none; transition: border-color .15s;
+    }
+    .field input:focus { border-color: #008060; box-shadow: 0 0 0 2px #00806022; }
+
+    /* Drop zone */
+    #dropzone {
+      border: 2px dashed #c9cccf;
+      border-radius: 10px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+    #dropzone.drag-over { border-color: #008060; background: #f0fdf9; }
+    #dropzone.has-file { border-color: #008060; border-style: solid; background: #f0fdf9; }
+    #dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    #dropzone .icon { font-size: 36px; margin-bottom: 10px; }
+    #dropzone p { font-size: 14px; color: #6d7175; }
+    #dropzone strong { color: #008060; }
+    #file-name { margin-top: 8px; font-size: 13px; font-weight: 600; color: #202223; }
+
+    /* Buttons */
+    .btn-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+    button {
+      padding: 10px 20px; border: none; border-radius: 6px;
+      font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s;
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: #008060; color: #fff; }
+    .btn-primary:not(:disabled):hover { background: #006e52; }
+    .btn-secondary { background: #f1f2f3; color: #202223; border: 1px solid #c9cccf; }
+    .btn-secondary:not(:disabled):hover { background: #e4e5e7; }
+    .btn-preview { background: #005bd3; color: #fff; }
+    .btn-preview:not(:disabled):hover { background: #0047a7; }
+    .btn-test { background: #fff; color: #008060; border: 1.5px solid #008060; }
+    .btn-test:not(:disabled):hover { background: #f0fdf9; }
+
+    /* Progress */
+    #progress-section { display: none; }
+    .progress-bar-wrap {
+      background: #f1f2f3; border-radius: 99px; height: 10px; overflow: hidden; margin-bottom: 10px;
+    }
+    .progress-bar {
+      height: 100%; background: #008060; border-radius: 99px;
+      width: 0%; transition: width .3s ease;
+    }
+    .progress-text { font-size: 13px; color: #6d7175; margin-bottom: 12px; }
+
+    /* Log */
+    #log {
+      max-height: 260px; overflow-y: auto;
+      font-size: 12.5px; font-family: 'Courier New', monospace;
+      background: #f9fafb; border: 1px solid #e1e3e5; border-radius: 8px;
+      padding: 12px; line-height: 1.7;
+    }
+    .log-ok { color: #008060; }
+    .log-err { color: #d72c0d; }
+    .log-info { color: #005bd3; }
+    .log-warn { color: #b98900; }
+
+    /* Result banner */
+    #result-banner {
+      display: none;
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 16px;
+    }
+    #result-banner.success { background: #d3f5e3; color: #00622e; border: 1px solid #95d0b0; }
+    #result-banner.partial { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+    #result-banner.fail { background: #fce8e6; color: #b81c0c; border: 1px solid #f4b4af; }
+
+    /* Preview table */
+    #preview-section { display: none; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #f1f2f3; text-align: left; padding: 8px 10px; font-weight: 600; }
+    td { padding: 7px 10px; border-top: 1px solid #f1f2f3; }
+    tr:hover td { background: #f9fafb; }
+
+    /* Connection badge */
+    #conn-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 99px;
+      font-size: 12px; font-weight: 600; margin-left: 10px; vertical-align: middle;
+    }
+    .badge-ok { background: #d3f5e3; color: #00622e; }
+    .badge-fail { background: #fce8e6; color: #b81c0c; }
+    .badge-checking { background: #f1f2f3; color: #6d7175; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>&#128722; Shopify Product Uploader</h1>
+  <p class="subtitle">Upload an XML file to bulk-import products into your Shopify store</p>
+
+  <!-- Auth card -->
+  <div class="card">
+    <h2>Authentication</h2>
+    <div class="field">
+      <label for="secret-input">Admin Secret Key</label>
+      <input type="password" id="secret-input" placeholder="Enter admin secret from .env" />
+    </div>
+    <button class="btn-test" onclick="testConnection()">&#128279; Test Shopify Connection <span id="conn-badge" class="badge-checking">—</span></button>
+  </div>
+
+  <!-- Upload card -->
+  <div class="card">
+    <h2>Upload XML File</h2>
+    <div id="dropzone">
+      <input type="file" id="file-input" accept=".xml,text/xml,application/xml" />
+      <div class="icon">&#128196;</div>
+      <p>Drag &amp; drop your XML file here, or <strong>click to browse</strong></p>
+      <p id="file-name"></p>
+    </div>
+    <div class="btn-row">
+      <button class="btn-preview" onclick="previewProducts()" id="btn-preview" disabled>&#128269; Preview Products</button>
+      <button class="btn-primary" onclick="uploadProducts()" id="btn-upload" disabled>&#128640; Upload to Shopify</button>
+      <a href="/api/sample?secret=" id="sample-link"><button class="btn-secondary" type="button">&#11015;&#65039; Download Sample XML</button></a>
+    </div>
+  </div>
+
+  <!-- Progress card -->
+  <div class="card" id="progress-section">
+    <h2>Upload Progress</h2>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+    <p class="progress-text" id="progress-text">Starting…</p>
+    <div id="log"></div>
+    <div id="result-banner"></div>
+  </div>
+
+  <!-- Preview card -->
+  <div class="card" id="preview-section">
+    <h2>Parsed Products Preview</h2>
+    <div class="table-wrap">
+      <table id="preview-table">
+        <thead><tr><th>#</th><th>Title</th><th>Vendor</th><th>Type</th><th>SKU</th><th>Price</th><th>Stock</th><th>Tags</th></tr></thead>
+        <tbody id="preview-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  let selectedFile = null;
+
+  // File selection
+  $('file-input').addEventListener('change', e => setFile(e.target.files[0]));
+  const dz = $('dropzone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+
+  function setFile(file) {
+    if (!file) return;
+    selectedFile = file;
+    $('file-name').textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+    dz.classList.add('has-file');
+    $('btn-preview').disabled = false;
+    $('btn-upload').disabled = false;
+  }
+
+  function getSecret() {
+    return $('secret-input').value.trim();
+  }
+
+  function updateSampleLink() {
+    $('sample-link').href = `/api/sample?secret=${encodeURIComponent(getSecret())}`;
+  }
+  $('secret-input').addEventListener('input', updateSampleLink);
+
+  async function testConnection() {
+    const badge = $('conn-badge');
+    badge.className = 'badge-checking';
+    badge.textContent = 'Checking…';
+    try {
+      const res = await apiFetch('/api/test');
+      const data = await res.json();
+      if (data.ok) {
+        badge.className = 'badge-ok';
+        badge.textContent = `✓ ${data.shop}`;
+      } else {
+        badge.className = 'badge-fail';
+        badge.textContent = `✗ ${data.error || 'Failed'}`;
+      }
+    } catch (e) {
+      badge.className = 'badge-fail';
+      badge.textContent = '✗ Error';
+    }
+  }
+
+  function apiFetch(url, options = {}) {
+    const secret = getSecret();
+    const headers = { ...(options.headers || {}), 'x-admin-secret': secret };
+    return fetch(url, { ...options, headers });
+  }
+
+  async function previewProducts() {
+    if (!selectedFile) return;
+    $('btn-preview').disabled = true;
+    $('btn-preview').textContent = '⏳ Parsing…';
+    $('preview-section').style.display = 'none';
+
+    const fd = new FormData();
+    fd.append('file', selectedFile);
+
+    try {
+      const res = await apiFetch('/api/parse', { method: 'POST', body: fd });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+      const { count, products } = await res.json();
+
+      const tbody = $('preview-body');
+      tbody.innerHTML = '';
+      products.forEach((p, i) => {
+        const v = p.variants?.[0] || {};
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          <td><strong>${esc(p.title)}</strong></td>
+          <td>${esc(p.vendor)}</td>
+          <td>${esc(p.product_type)}</td>
+          <td>${esc(v.sku)}</td>
+          <td>${esc(v.price)}</td>
+          <td>${esc(String(v.inventory_quantity ?? ''))}</td>
+          <td>${esc(p.tags)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      $('preview-section').querySelector('h2').textContent = `Parsed Products Preview (${count})`;
+      $('preview-section').style.display = 'block';
+    } catch (e) {
+      alert('Parse error: ' + e.message);
+    } finally {
+      $('btn-preview').disabled = false;
+      $('btn-preview').textContent = '🔍 Preview Products';
+    }
+  }
+
+  function esc(str) {
+    return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function log(msg, cls = 'log-info') {
+    const el = $('log');
+    const line = document.createElement('div');
+    line.className = cls;
+    line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  async function uploadProducts() {
+    if (!selectedFile) return;
+    if (!confirm(`Upload "${selectedFile.name}" to Shopify? This will create new products.`)) return;
+
+    $('btn-upload').disabled = true;
+    $('btn-preview').disabled = true;
+    $('progress-section').style.display = 'block';
+    $('result-banner').style.display = 'none';
+    $('log').innerHTML = '';
+    $('progress-bar').style.width = '0%';
+    $('progress-text').textContent = 'Starting…';
+
+    const fd = new FormData();
+    fd.append('file', selectedFile);
+    const secret = getSecret();
+
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'x-admin-secret': secret },
+      body: fd,
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop();
+      for (const part of parts) {
+        if (!part.startsWith('data: ')) continue;
+        try {
+          const ev = JSON.parse(part.slice(6));
+          handleEvent(ev);
+        } catch {}
+      }
+    }
+
+    $('btn-upload').disabled = false;
+    $('btn-preview').disabled = false;
+  }
+
+  function handleEvent(ev) {
+    if (ev.type === 'status') {
+      log(ev.message, 'log-info');
+      $('progress-text').textContent = ev.message;
+    } else if (ev.type === 'parsed') {
+      log(ev.message, 'log-info');
+    } else if (ev.type === 'progress') {
+      const pct = Math.round((ev.done / ev.total) * 100);
+      $('progress-bar').style.width = pct + '%';
+      $('progress-text').textContent = `${ev.done} / ${ev.total} products`;
+      if (ev.result.success) {
+        log(`✓ [${ev.done}/${ev.total}] "${ev.result.title}" (id: ${ev.result.id})`, 'log-ok');
+      } else {
+        log(`✗ [${ev.done}/${ev.total}] "${ev.result.title}" — ${ev.result.error}`, 'log-err');
+      }
+    } else if (ev.type === 'done') {
+      $('progress-bar').style.width = '100%';
+      $('progress-text').textContent = 'Complete';
+      const banner = $('result-banner');
+      banner.style.display = 'block';
+      if (ev.failed === 0) {
+        banner.className = 'success';
+        banner.textContent = `✓ All ${ev.created} product(s) uploaded successfully!`;
+      } else if (ev.created > 0) {
+        banner.className = 'partial';
+        banner.textContent = `⚠ ${ev.created} uploaded, ${ev.failed} failed. Check the log for errors.`;
+      } else {
+        banner.className = 'fail';
+        banner.textContent = `✗ All ${ev.failed} product(s) failed. Check the log for errors.`;
+      }
+      log(`Done — created: ${ev.created}, failed: ${ev.failed}`, ev.failed === 0 ? 'log-ok' : 'log-warn');
+    } else if (ev.type === 'error') {
+      log(`ERROR: ${ev.message}`, 'log-err');
+      const banner = $('result-banner');
+      banner.style.display = 'block';
+      banner.className = 'fail';
+      banner.textContent = `✗ ${ev.message}`;
+    }
+  }
+</script>
+</body>
+</html>
