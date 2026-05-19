@@ -42,23 +42,19 @@ router.post('/parse', upload.single('file'), async (req, res) => {
   }
 });
 
-// POST /api/upload — parse XML and push to Shopify, returns JSON summary
-// (SSE streaming is not used — Vercel serverless does not support it)
-router.post('/upload', upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+// POST /api/upload-products — accept pre-parsed JSON products from the browser
+// The client parses the XML locally (avoiding Vercel's 4.5 MB body limit) and
+// posts products in small batches as JSON.
+router.post('/upload-products', async (req, res) => {
+  const { products } = req.body;
+  if (!Array.isArray(products) || products.length === 0) {
+    return res.status(400).json({ error: 'products array is required' });
+  }
 
   try {
-    const xml = req.file.buffer.toString('utf8');
-    const products = await parseXml(xml);
-
-    if (products.length === 0) {
-      return res.json({ created: 0, failed: 0, errors: [], total: 0 });
-    }
-
     await shopify.testConnection();
-
     const summary = await shopify.bulkUpload(products);
-    res.json({ ...summary, total: products.length });
+    res.json(summary);
   } catch (err) {
     const message = err.response?.data ? JSON.stringify(err.response.data) : err.message;
     res.status(500).json({ error: message });

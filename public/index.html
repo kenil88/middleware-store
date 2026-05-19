@@ -187,7 +187,6 @@
   const $ = id => document.getElementById(id);
   let selectedFile = null;
 
-  // Redirect to login if session expired
   fetch('/auth/me').then(r => { if (!r.ok) window.location.href = '/login'; });
 
   async function logout() {
@@ -195,14 +194,13 @@
     window.location.href = '/login';
   }
 
-  // File selection
+  // ── File selection ────────────────────────────────────────────────────────────
   $('file-input').addEventListener('change', e => setFile(e.target.files[0]));
   const dz = $('dropzone');
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
   dz.addEventListener('drop', e => {
-    e.preventDefault();
-    dz.classList.remove('drag-over');
+    e.preventDefault(); dz.classList.remove('drag-over');
     if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
   });
 
@@ -215,73 +213,134 @@
     $('btn-upload').disabled = false;
   }
 
+  // ── Shopify connection test ───────────────────────────────────────────────────
   async function testConnection() {
     const badge = $('conn-badge');
-    badge.className = 'badge-checking';
-    badge.textContent = 'Checking…';
+    badge.className = 'badge-checking'; badge.textContent = 'Checking…';
     try {
       const res = await fetch('/api/test');
       if (res.status === 401) { window.location.href = '/login'; return; }
       const data = await res.json();
-      if (data.ok) {
-        badge.className = 'badge-ok';
-        badge.textContent = `✓ ${data.shop}`;
-      } else {
-        badge.className = 'badge-fail';
-        badge.textContent = `✗ ${data.error || 'Failed'}`;
-      }
-    } catch (e) {
-      badge.className = 'badge-fail';
-      badge.textContent = '✗ Error';
-    }
+      badge.className = data.ok ? 'badge-ok' : 'badge-fail';
+      badge.textContent  = data.ok ? `✓ ${data.shop}` : `✗ ${data.error || 'Failed'}`;
+    } catch { badge.className = 'badge-fail'; badge.textContent = '✗ Error'; }
   }
 
-  async function previewProducts() {
-    if (!selectedFile) return;
-    $('btn-preview').disabled = true;
-    $('btn-preview').textContent = '⏳ Parsing…';
-    $('preview-section').style.display = 'none';
+  // ── Client-side XML parser (no file upload — avoids Vercel 4.5 MB limit) ─────
 
-    const fd = new FormData();
-    fd.append('file', selectedFile);
-
-    try {
-      const res = await fetch('/api/parse', { method: 'POST', body: fd });
-      if (res.status === 401) { window.location.href = '/login'; return; }
-      const text = await res.text();
-      let parsed;
-      try { parsed = JSON.parse(text); } catch { throw new Error(`Server error (${res.status}): ${text.slice(0, 200)}`); }
-      if (!res.ok) throw new Error(parsed.error || `HTTP ${res.status}`);
-      const { count, products } = parsed;
-
-      const tbody = $('preview-body');
-      tbody.innerHTML = '';
-      products.forEach((p, i) => {
-        const v = p.variants?.[0] || {};
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${i + 1}</td>
-          <td><strong>${esc(p.title)}</strong></td>
-          <td>${esc(p.vendor)}</td>
-          <td>${esc(p.product_type)}</td>
-          <td>${esc(v.sku)}</td>
-          <td>${esc(v.price)}</td>
-          <td>${esc(String(v.inventory_quantity ?? ''))}</td>
-          <td>${esc(p.tags)}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      $('preview-section').querySelector('h2').textContent = `Parsed Products Preview (${count})`;
-      $('preview-section').style.display = 'block';
-    } catch (e) {
-      alert('Parse error: ' + e.message);
-    } finally {
-      $('btn-preview').disabled = false;
-      $('btn-preview').textContent = '🔍 Preview Products';
-    }
+  function getTag(el, tag) {
+    const node = el.getElementsByTagName(tag)[0];
+    return node ? node.textContent.trim() : '';
   }
 
+  function parseDynamicsItem(item) {
+    const get = tag => getTag(item, tag);
+    const attrs = [
+      { name: 'Color',            value: get('Attrib_2_Code') },
+      { name: 'Compatible Model', value: get('Attrib_3_Code') },
+      { name: 'Screen Size',      value: get('Attrib_4_Code') },
+    ].filter(a => a.value);
+
+    const optionDefs    = attrs.map(a => ({ name: a.name, values: [a.value] }));
+    const variantOptions = {};
+    attrs.forEach((a, i) => { variantOptions[`option${i + 1}`] = a.value; });
+
+    const tags = [
+      get('Season_Code'), get('Division_Code'), get('Retail_Product_Code'),
+      get('Search_Description'), get('VAT_Prod_Posting_Group'), get('Vendor_No'),
+    ].filter(Boolean).join(', ');
+
+    const webDesc = get('Web_Description');
+    const bodyHtml = webDesc
+      ? (webDesc.trimStart().startsWith('<') ? webDesc : `<p>${webDesc}</p>`)
+      : '';
+
+    const variant = {
+      sku: get('No'),
+      price: parseFloat(get('Unit_Price_Including_VAT') || '0').toFixed(2),
+      compare_at_price: parseFloat(get('Unit_Price') || '0').toFixed(2),
+      barcode: get('BarcodeNo'),
+      inventory_management: 'shopify',
+      inventory_quantity: parseInt(get('Inventory') || '0', 10),
+      taxable: true, requires_shipping: true,
+      ...variantOptions,
+    };
+
+    const metafields = [
+      { namespace: 'dynamics', key: 'record_key',          value: get('Key'),                   type: 'single_line_text_field' },
+      { namespace: 'dynamics', key: 'vendor_no',           value: get('Vendor_No'),              type: 'single_line_text_field' },
+      { namespace: 'dynamics', key: 'division_code',       value: get('Division_Code'),          type: 'single_line_text_field' },
+      { namespace: 'dynamics', key: 'retail_product_code', value: get('Retail_Product_Code'),    type: 'single_line_text_field' },
+      { namespace: 'dynamics', key: 'vat_group',           value: get('VAT_Prod_Posting_Group'), type: 'single_line_text_field' },
+      { namespace: 'dynamics', key: 'item_family_code',    value: get('Item_Family_Code'),       type: 'single_line_text_field' },
+    ].filter(m => m.value);
+
+    const product = {
+      title: get('Description') || 'Untitled Product',
+      body_html: bodyHtml,
+      vendor: get('Attrib_1_Code'),
+      product_type: get('Item_Category_Code'),
+      tags, status: 'active',
+      variants: [variant], metafields,
+    };
+    if (optionDefs.length) product.options = optionDefs;
+    return product;
+  }
+
+  function parseGenericProduct(el) {
+    const get = tag => getTag(el, tag);
+    const variantEls = Array.from(el.getElementsByTagName('variant'));
+    const variants = variantEls.length
+      ? variantEls.map(v => {
+          const gv = tag => getTag(v, tag);
+          const vt = { sku: gv('sku'), price: gv('price') || '0.00',
+            inventory_management: 'shopify',
+            inventory_quantity: parseInt(gv('inventory_quantity') || '0', 10),
+            requires_shipping: gv('requires_shipping') !== 'false',
+            taxable: gv('taxable') !== 'false',
+            weight: parseFloat(gv('weight') || '0'), weight_unit: gv('weight_unit') || 'kg' };
+          ['compare_at_price','barcode','option1','option2','option3'].forEach(k => { if (gv(k)) vt[k] = gv(k); });
+          return vt;
+        })
+      : [{ sku: get('sku'), price: get('price') || '0.00', inventory_management: 'shopify',
+           inventory_quantity: parseInt(get('inventory_quantity') || '0', 10), option1: 'Default Title' }];
+
+    const imageEls = Array.from(el.getElementsByTagName('image'));
+    const images = imageEls.length
+      ? imageEls.map(img => ({ src: getTag(img, 'src'), alt: getTag(img, 'alt') })).filter(i => i.src)
+      : (get('image_url') ? [{ src: get('image_url') }] : []);
+
+    const optionEls = Array.from(el.getElementsByTagName('option'));
+    const options = optionEls.map((o, i) => ({
+      name: getTag(o, 'name') || `Option ${i + 1}`,
+      values: Array.from(o.getElementsByTagName('value')).map(v => v.textContent.trim()),
+    })).filter(o => o.values.length);
+
+    const product = { title: get('title') || 'Untitled Product',
+      body_html: get('body_html') || get('description') || '',
+      vendor: get('vendor') || '', product_type: get('product_type') || get('category') || '',
+      tags: get('tags') || '', status: get('status') || 'active', variants, images };
+    if (options.length) product.options = options;
+    return product;
+  }
+
+  function parseXmlLocally(xmlString) {
+    const doc = new DOMParser().parseFromString(xmlString, 'text/xml');
+    const err = doc.querySelector('parsererror');
+    if (err) throw new Error('Invalid XML: ' + err.textContent.slice(0, 120));
+
+    if (doc.documentElement.localName.toLowerCase().includes('envelope')) {
+      const items = Array.from(doc.getElementsByTagName('RetailItemList'));
+      if (!items.length) throw new Error('No RetailItemList elements found in SOAP envelope');
+      return items.map(parseDynamicsItem);
+    }
+
+    const productEls = Array.from(doc.getElementsByTagName('product'));
+    if (!productEls.length) throw new Error('No <product> elements found in XML');
+    return productEls.map(parseGenericProduct);
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────────
   function esc(str) {
     return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
@@ -295,6 +354,55 @@
     el.scrollTop = el.scrollHeight;
   }
 
+  function showBanner(cls, text) {
+    const b = $('result-banner');
+    b.style.display = 'block'; b.className = cls; b.textContent = text;
+  }
+
+  async function safeJson(res) {
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch { throw new Error(`Server error (${res.status}): ${text.slice(0, 200)}`); }
+  }
+
+  // ── Preview (entirely client-side — no server call) ───────────────────────────
+  async function previewProducts() {
+    if (!selectedFile) return;
+    $('btn-preview').disabled = true;
+    $('btn-preview').textContent = '⏳ Parsing…';
+    $('preview-section').style.display = 'none';
+
+    try {
+      const xml = await selectedFile.text();
+      const products = parseXmlLocally(xml);
+
+      const tbody = $('preview-body');
+      tbody.innerHTML = '';
+      products.forEach((p, i) => {
+        const v = p.variants?.[0] || {};
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${i+1}</td><td><strong>${esc(p.title)}</strong></td>
+          <td>${esc(p.vendor)}</td><td>${esc(p.product_type)}</td>
+          <td>${esc(v.sku)}</td><td>${esc(v.price)}</td>
+          <td>${esc(String(v.inventory_quantity ?? ''))}</td><td>${esc(p.tags)}</td>`;
+        tbody.appendChild(tr);
+      });
+
+      $('preview-section').querySelector('h2').textContent = `Parsed Products Preview (${products.length})`;
+      $('preview-section').style.display = 'block';
+    } catch (e) {
+      alert('Parse error: ' + e.message);
+    } finally {
+      $('btn-preview').disabled = false;
+      $('btn-preview').textContent = '🔍 Preview Products';
+    }
+  }
+
+  // ── Upload (client-parsed → batched JSON POST → /api/upload-products) ─────────
+  // Vercel serverless caps request bodies at 4.5 MB; we never send the raw XML.
+  // Products are parsed locally then posted 8 at a time as compact JSON.
+  const BATCH_SIZE = 8;
+
   async function uploadProducts() {
     if (!selectedFile) return;
     if (!confirm(`Upload "${selectedFile.name}" to Shopify? This will create new products.`)) return;
@@ -305,56 +413,73 @@
     $('result-banner').style.display = 'none';
     $('log').innerHTML = '';
     $('progress-bar').style.width = '0%';
-    $('progress-text').textContent = 'Uploading — please wait…';
-    log('Parsing XML and uploading to Shopify…', 'log-info');
+    $('progress-text').textContent = 'Parsing file…';
 
-    const fd = new FormData();
-    fd.append('file', selectedFile);
-
+    let products;
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
-      if (res.status === 401) { window.location.href = '/login'; return; }
-
-      const text = await res.text();
-      let data;
-      try { data = JSON.parse(text); } catch { throw new Error(`Server error (${res.status}): ${text.slice(0, 300)}`); }
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-
-      // Show per-error details if any failed
-      if (data.errors && data.errors.length) {
-        data.errors.forEach(e => log(`✗ [${e.index + 1}] "${e.title}" — ${e.error}`, 'log-err'));
-      }
-
-      $('progress-bar').style.width = '100%';
-      $('progress-text').textContent = 'Complete';
-
-      const banner = $('result-banner');
-      banner.style.display = 'block';
-      if (data.failed === 0) {
-        banner.className = 'success';
-        banner.textContent = `✓ All ${data.created} product(s) uploaded successfully!`;
-        log(`Done — created: ${data.created}`, 'log-ok');
-      } else if (data.created > 0) {
-        banner.className = 'partial';
-        banner.textContent = `⚠ ${data.created} uploaded, ${data.failed} failed. Check the log for errors.`;
-        log(`Done — created: ${data.created}, failed: ${data.failed}`, 'log-warn');
-      } else {
-        banner.className = 'fail';
-        banner.textContent = `✗ All ${data.failed} product(s) failed. Check the log for errors.`;
-        log(`Done — all ${data.failed} failed`, 'log-err');
-      }
+      const xml = await selectedFile.text();
+      products = parseXmlLocally(xml);
+      log(`Parsed ${products.length} product(s). Uploading in batches of ${BATCH_SIZE}…`, 'log-info');
     } catch (err) {
-      $('progress-bar').style.width = '0%';
-      $('progress-text').textContent = 'Failed';
-      log(`ERROR: ${err.message}`, 'log-err');
-      const banner = $('result-banner');
-      banner.style.display = 'block';
-      banner.className = 'fail';
-      banner.textContent = `✗ ${err.message}`;
-    } finally {
-      $('btn-upload').disabled = false;
-      $('btn-preview').disabled = false;
+      $('progress-text').textContent = 'Parse failed';
+      log(`Parse error: ${err.message}`, 'log-err');
+      showBanner('fail', `✗ ${err.message}`);
+      $('btn-upload').disabled = false; $('btn-preview').disabled = false;
+      return;
     }
+
+    const batches = [];
+    for (let i = 0; i < products.length; i += BATCH_SIZE) batches.push(products.slice(i, i + BATCH_SIZE));
+
+    let totalCreated = 0, totalFailed = 0;
+
+    for (let b = 0; b < batches.length; b++) {
+      const batch = batches[b];
+      const start = b * BATCH_SIZE + 1;
+      const end   = Math.min(start + batch.length - 1, products.length);
+      $('progress-text').textContent = `Batch ${b+1}/${batches.length} — products ${start}–${end}…`;
+
+      try {
+        const res = await fetch('/api/upload-products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ products: batch }),
+        });
+        if (res.status === 401) { window.location.href = '/login'; return; }
+
+        const data = await safeJson(res);
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+        totalCreated += data.created || 0;
+        totalFailed  += data.failed  || 0;
+        (data.errors || []).forEach(e =>
+          log(`✗ [${start + e.index}] "${e.title}" — ${e.error}`, 'log-err'));
+
+        const pct = Math.round(((b + 1) / batches.length) * 100);
+        $('progress-bar').style.width = pct + '%';
+        log(`Batch ${b+1}/${batches.length}: ${data.created} created, ${data.failed} failed`,
+            data.failed > 0 ? 'log-warn' : 'log-ok');
+      } catch (err) {
+        log(`Batch ${b+1} error: ${err.message}`, 'log-err');
+        totalFailed += batch.length;
+      }
+    }
+
+    $('progress-bar').style.width = '100%';
+    $('progress-text').textContent = 'Complete';
+
+    if (totalFailed === 0) {
+      showBanner('success', `✓ All ${totalCreated} product(s) uploaded successfully!`);
+      log(`Done — ${totalCreated} created`, 'log-ok');
+    } else if (totalCreated > 0) {
+      showBanner('partial', `⚠ ${totalCreated} uploaded, ${totalFailed} failed. See log for details.`);
+      log(`Done — created: ${totalCreated}, failed: ${totalFailed}`, 'log-warn');
+    } else {
+      showBanner('fail', `✗ All ${totalFailed} product(s) failed. See log for details.`);
+      log(`Done — all ${totalFailed} failed`, 'log-err');
+    }
+
+    $('btn-upload').disabled = false; $('btn-preview').disabled = false;
   }
 </script>
 </body>
