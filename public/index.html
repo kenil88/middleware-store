@@ -248,8 +248,11 @@
     try {
       const res = await fetch('/api/parse', { method: 'POST', body: fd });
       if (res.status === 401) { window.location.href = '/login'; return; }
-      if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
-      const { count, products } = await res.json();
+      const text = await res.text();
+      let parsed;
+      try { parsed = JSON.parse(text); } catch { throw new Error(`Server error (${res.status}): ${text.slice(0, 200)}`); }
+      if (!res.ok) throw new Error(parsed.error || `HTTP ${res.status}`);
+      const { count, products } = parsed;
 
       const tbody = $('preview-body');
       tbody.innerHTML = '';

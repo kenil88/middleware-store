@@ -53,6 +53,16 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Global error handler — ensures API routes always get JSON, never HTML
+app.use((err, req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(err.status || err.statusCode || 500).json({
+      error: err.message || 'Internal server error',
+    });
+  }
+  next(err);
+});
+
 // Export for Vercel serverless; listen for local dev
 if (require.main === module) {
   app.listen(PORT, () => {
