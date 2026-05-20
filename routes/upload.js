@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const axios = require('axios');
 const { parseXml } = require('../services/xmlParser');
 const shopify = require('../services/shopifyUploader');
 
@@ -27,6 +28,59 @@ router.get('/test', async (req, res) => {
   } catch (err) {
     res.status(502).json({ ok: false, error: err.response?.data || err.message });
   }
+});
+
+// POST /api/fetch-from-url — fetch XML from an external API URL, parse it,
+// filter out SKUs already in Shopify, return only new products
+router.post('/fetch-from-url', async (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ error: 'url is required' });
+
+  let xml;
+  try {
+    const xmlRes = await axios.get(url, {
+      responseType: 'text',
+      headers: { Accept: 'application/xml, text/xml, */*' },
+      timeout: 30000,
+    });
+    xml = typeof xmlRes.data === 'string' ? xmlRes.data : String(xmlRes.data);
+  } catch (err) {
+    return res.status(502).json({ error: `Failed to fetch URL: ${err.message}` });
+  }
+
+  let allProducts;
+  try {
+    allProducts = await parseXml(xml);
+  } catch (err) {
+    return res.status(422).json({ error: `XML parse error: ${err.message}` });
+  }
+
+  let existingSkus;
+  try {
+    existingSkus = await shopify.getAllSkus();
+  } catch (err) {
+    return res.status(502).json({ error: `Shopify error: ${err.message}` });
+  }
+
+  const newProducts = [];
+  const skipped = [];
+
+  for (const p of allProducts) {
+    const sku = p.variants?.[0]?.sku?.trim();
+    if (sku && existingSkus.has(sku)) {
+      skipped.push({ title: p.title, sku });
+    } else {
+      newProducts.push(p);
+    }
+  }
+
+  res.json({
+    total: allProducts.length,
+    newCount: newProducts.length,
+    skippedCount: skipped.length,
+    products: newProducts,
+    skipped,
+  });
 });
 
 // POST /api/parse — parse XML and return preview (no Shopify upload)

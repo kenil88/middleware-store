@@ -35,32 +35,13 @@
 
     .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #202223; }
 
-    /* Secret input */
     .field { margin-bottom: 16px; }
     .field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
-    .field input {
+    .field input[type=url] {
       width: 100%; padding: 8px 12px; border: 1px solid #c9cccf; border-radius: 6px;
       font-size: 14px; outline: none; transition: border-color .15s;
     }
-    .field input:focus { border-color: #008060; box-shadow: 0 0 0 2px #00806022; }
-
-    /* Drop zone */
-    #dropzone {
-      border: 2px dashed #c9cccf;
-      border-radius: 10px;
-      padding: 40px 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color .2s, background .2s;
-      position: relative;
-    }
-    #dropzone.drag-over { border-color: #008060; background: #f0fdf9; }
-    #dropzone.has-file { border-color: #008060; border-style: solid; background: #f0fdf9; }
-    #dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-    #dropzone .icon { font-size: 36px; margin-bottom: 10px; }
-    #dropzone p { font-size: 14px; color: #6d7175; }
-    #dropzone strong { color: #008060; }
-    #file-name { margin-top: 8px; font-size: 13px; font-weight: 600; color: #202223; }
+    .field input[type=url]:focus { border-color: #008060; box-shadow: 0 0 0 2px #00806022; }
 
     /* Buttons */
     .btn-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
@@ -75,6 +56,7 @@
     .btn-secondary:not(:disabled):hover { background: #e4e5e7; }
     .btn-preview { background: #005bd3; color: #fff; }
     .btn-preview:not(:disabled):hover { background: #0047a7; }
+
     /* Progress */
     #progress-section { display: none; }
     .progress-bar-wrap {
@@ -113,12 +95,13 @@
 
     /* Preview table */
     #preview-section { display: none; }
+    .preview-meta { font-size: 13px; color: #6d7175; margin-bottom: 12px; }
+    .preview-meta .skip-note { color: #b98900; font-weight: 600; }
     .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th { background: #f1f2f3; text-align: left; padding: 8px 10px; font-weight: 600; }
     td { padding: 7px 10px; border-top: 1px solid #f1f2f3; }
     tr:hover td { background: #f9fafb; }
-
   </style>
 </head>
 <body>
@@ -127,21 +110,18 @@
     <h1>&#128722; Shopify Product Uploader</h1>
     <button class="btn-secondary" style="font-size:13px;padding:7px 14px;" onclick="logout()">&#128274; Logout</button>
   </div>
-  <p class="subtitle">Upload an XML file to bulk-import products into your Shopify store</p>
+  <p class="subtitle">Fetch products from your XML API and bulk-import new ones into Shopify</p>
 
-  <!-- Upload card -->
+  <!-- Source API card -->
   <div class="card">
-    <h2>Upload XML File</h2>
-    <div id="dropzone">
-      <input type="file" id="file-input" accept=".xml,text/xml,application/xml" />
-      <div class="icon">&#128196;</div>
-      <p>Drag &amp; drop your XML file here, or <strong>click to browse</strong></p>
-      <p id="file-name"></p>
+    <h2>Product Source API</h2>
+    <div class="field">
+      <label for="api-url">API URL (must return XML)</label>
+      <input type="url" id="api-url" placeholder="https://your-api.com/products.xml" />
     </div>
     <div class="btn-row">
-      <button class="btn-preview" onclick="previewProducts()" id="btn-preview" disabled>&#128269; Preview Products</button>
+      <button class="btn-preview" onclick="fetchAndPreview()" id="btn-preview">&#128269; Fetch &amp; Preview</button>
       <button class="btn-primary" onclick="uploadProducts()" id="btn-upload" disabled>&#128640; Upload to Shopify</button>
-      <a href="/api/sample"><button class="btn-secondary" type="button">&#11015;&#65039; Download Sample XML</button></a>
     </div>
   </div>
 
@@ -156,7 +136,8 @@
 
   <!-- Preview card -->
   <div class="card" id="preview-section">
-    <h2>Parsed Products Preview</h2>
+    <h2 id="preview-heading">New Products</h2>
+    <p class="preview-meta" id="preview-meta"></p>
     <div class="table-wrap">
       <table id="preview-table">
         <thead><tr><th>#</th><th>Title</th><th>Vendor</th><th>Type</th><th>SKU</th><th>Price</th><th>Stock</th><th>Tags</th></tr></thead>
@@ -168,146 +149,13 @@
 
 <script>
   const $ = id => document.getElementById(id);
-  let selectedFile = null;
+  let fetchedProducts = [];
 
   fetch('/auth/me').then(r => { if (!r.ok) window.location.href = '/login'; });
 
   async function logout() {
     await fetch('/auth/logout', { method: 'POST' });
     window.location.href = '/login';
-  }
-
-  // ── File selection ────────────────────────────────────────────────────────────
-  $('file-input').addEventListener('change', e => setFile(e.target.files[0]));
-  const dz = $('dropzone');
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
-  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
-  dz.addEventListener('drop', e => {
-    e.preventDefault(); dz.classList.remove('drag-over');
-    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
-  });
-
-  function setFile(file) {
-    if (!file) return;
-    selectedFile = file;
-    $('file-name').textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-    dz.classList.add('has-file');
-    $('btn-preview').disabled = false;
-    $('btn-upload').disabled = false;
-  }
-
-  // ── Client-side XML parser (no file upload — avoids Vercel 4.5 MB limit) ─────
-
-  function getTag(el, tag) {
-    const node = el.getElementsByTagName(tag)[0];
-    return node ? node.textContent.trim() : '';
-  }
-
-  function parseDynamicsItem(item) {
-    const get = tag => getTag(item, tag);
-    const attrs = [
-      { name: 'Color',            value: get('Attrib_2_Code') },
-      { name: 'Compatible Model', value: get('Attrib_3_Code') },
-      { name: 'Screen Size',      value: get('Attrib_4_Code') },
-    ].filter(a => a.value);
-
-    const optionDefs    = attrs.map(a => ({ name: a.name, values: [a.value] }));
-    const variantOptions = {};
-    attrs.forEach((a, i) => { variantOptions[`option${i + 1}`] = a.value; });
-
-    const tags = [
-      get('Season_Code'), get('Division_Code'), get('Retail_Product_Code'),
-      get('Search_Description'), get('VAT_Prod_Posting_Group'), get('Vendor_No'),
-    ].filter(Boolean).join(', ');
-
-    const webDesc = get('Web_Description');
-    const bodyHtml = webDesc
-      ? (webDesc.trimStart().startsWith('<') ? webDesc : `<p>${webDesc}</p>`)
-      : '';
-
-    const variant = {
-      sku: get('No'),
-      price: parseFloat(get('Unit_Price_Including_VAT') || '0').toFixed(2),
-      compare_at_price: parseFloat(get('Unit_Price') || '0').toFixed(2),
-      barcode: get('BarcodeNo'),
-      inventory_management: 'shopify',
-      inventory_quantity: parseInt(get('Inventory') || '0', 10),
-      taxable: true, requires_shipping: true,
-      ...variantOptions,
-    };
-
-    const metafields = [
-      { namespace: 'dynamics', key: 'record_key',          value: get('Key'),                   type: 'single_line_text_field' },
-      { namespace: 'dynamics', key: 'vendor_no',           value: get('Vendor_No'),              type: 'single_line_text_field' },
-      { namespace: 'dynamics', key: 'division_code',       value: get('Division_Code'),          type: 'single_line_text_field' },
-      { namespace: 'dynamics', key: 'retail_product_code', value: get('Retail_Product_Code'),    type: 'single_line_text_field' },
-      { namespace: 'dynamics', key: 'vat_group',           value: get('VAT_Prod_Posting_Group'), type: 'single_line_text_field' },
-      { namespace: 'dynamics', key: 'item_family_code',    value: get('Item_Family_Code'),       type: 'single_line_text_field' },
-    ].filter(m => m.value);
-
-    const product = {
-      title: get('Description') || 'Untitled Product',
-      body_html: bodyHtml,
-      vendor: get('Attrib_1_Code'),
-      product_type: get('Item_Category_Code'),
-      tags, status: 'active',
-      variants: [variant], metafields,
-    };
-    if (optionDefs.length) product.options = optionDefs;
-    return product;
-  }
-
-  function parseGenericProduct(el) {
-    const get = tag => getTag(el, tag);
-    const variantEls = Array.from(el.getElementsByTagName('variant'));
-    const variants = variantEls.length
-      ? variantEls.map(v => {
-          const gv = tag => getTag(v, tag);
-          const vt = { sku: gv('sku'), price: gv('price') || '0.00',
-            inventory_management: 'shopify',
-            inventory_quantity: parseInt(gv('inventory_quantity') || '0', 10),
-            requires_shipping: gv('requires_shipping') !== 'false',
-            taxable: gv('taxable') !== 'false',
-            weight: parseFloat(gv('weight') || '0'), weight_unit: gv('weight_unit') || 'kg' };
-          ['compare_at_price','barcode','option1','option2','option3'].forEach(k => { if (gv(k)) vt[k] = gv(k); });
-          return vt;
-        })
-      : [{ sku: get('sku'), price: get('price') || '0.00', inventory_management: 'shopify',
-           inventory_quantity: parseInt(get('inventory_quantity') || '0', 10), option1: 'Default Title' }];
-
-    const imageEls = Array.from(el.getElementsByTagName('image'));
-    const images = imageEls.length
-      ? imageEls.map(img => ({ src: getTag(img, 'src'), alt: getTag(img, 'alt') })).filter(i => i.src)
-      : (get('image_url') ? [{ src: get('image_url') }] : []);
-
-    const optionEls = Array.from(el.getElementsByTagName('option'));
-    const options = optionEls.map((o, i) => ({
-      name: getTag(o, 'name') || `Option ${i + 1}`,
-      values: Array.from(o.getElementsByTagName('value')).map(v => v.textContent.trim()),
-    })).filter(o => o.values.length);
-
-    const product = { title: get('title') || 'Untitled Product',
-      body_html: get('body_html') || get('description') || '',
-      vendor: get('vendor') || '', product_type: get('product_type') || get('category') || '',
-      tags: get('tags') || '', status: get('status') || 'active', variants, images };
-    if (options.length) product.options = options;
-    return product;
-  }
-
-  function parseXmlLocally(xmlString) {
-    const doc = new DOMParser().parseFromString(xmlString, 'text/xml');
-    const err = doc.querySelector('parsererror');
-    if (err) throw new Error('Invalid XML: ' + err.textContent.slice(0, 120));
-
-    if (doc.documentElement.localName.toLowerCase().includes('envelope')) {
-      const items = Array.from(doc.getElementsByTagName('RetailItemList'));
-      if (!items.length) throw new Error('No RetailItemList elements found in SOAP envelope');
-      return items.map(parseDynamicsItem);
-    }
-
-    const productEls = Array.from(doc.getElementsByTagName('product'));
-    if (!productEls.length) throw new Error('No <product> elements found in XML');
-    return productEls.map(parseGenericProduct);
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -335,20 +183,34 @@
     catch { throw new Error(`Server error (${res.status}): ${text.slice(0, 200)}`); }
   }
 
-  // ── Preview (entirely client-side — no server call) ───────────────────────────
-  async function previewProducts() {
-    if (!selectedFile) return;
+  // ── Fetch & Preview ───────────────────────────────────────────────────────────
+  async function fetchAndPreview() {
+    const url = $('api-url').value.trim();
+    if (!url) { alert('Please enter an API URL.'); return; }
+
     $('btn-preview').disabled = true;
-    $('btn-preview').textContent = '⏳ Parsing…';
+    $('btn-preview').textContent = '⏳ Fetching…';
+    $('btn-upload').disabled = true;
     $('preview-section').style.display = 'none';
+    fetchedProducts = [];
 
     try {
-      const xml = await selectedFile.text();
-      const products = parseXmlLocally(xml);
+      const res = await fetch('/api/fetch-from-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      if (res.status === 401) { window.location.href = '/login'; return; }
 
+      const data = await safeJson(res);
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+      fetchedProducts = data.products;
+
+      // Populate preview table
       const tbody = $('preview-body');
       tbody.innerHTML = '';
-      products.forEach((p, i) => {
+      fetchedProducts.forEach((p, i) => {
         const v = p.variants?.[0] || {};
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${i+1}</td><td><strong>${esc(p.title)}</strong></td>
@@ -358,24 +220,35 @@
         tbody.appendChild(tr);
       });
 
-      $('preview-section').querySelector('h2').textContent = `Parsed Products Preview (${products.length})`;
+      $('preview-heading').textContent = `New Products (${data.newCount})`;
+
+      let metaText = `${data.total} product(s) fetched from API.`;
+      if (data.skippedCount > 0) {
+        metaText += ` <span class="skip-note">${data.skippedCount} already in Shopify — skipped.</span>`;
+      }
+      $('preview-meta').innerHTML = metaText;
       $('preview-section').style.display = 'block';
+
+      if (fetchedProducts.length === 0) {
+        $('btn-upload').disabled = true;
+        if (data.skippedCount > 0) alert('All products from the API already exist in Shopify. Nothing to upload.');
+      } else {
+        $('btn-upload').disabled = false;
+      }
     } catch (e) {
-      alert('Parse error: ' + e.message);
+      alert('Error: ' + e.message);
     } finally {
       $('btn-preview').disabled = false;
-      $('btn-preview').textContent = '🔍 Preview Products';
+      $('btn-preview').textContent = '🔍 Fetch & Preview';
     }
   }
 
-  // ── Upload (client-parsed → batched JSON POST → /api/upload-products) ─────────
-  // Vercel serverless caps request bodies at 4.5 MB; we never send the raw XML.
-  // Products are parsed locally then posted 8 at a time as compact JSON.
+  // ── Upload (batched JSON POST → /api/upload-products) ─────────────────────────
   const BATCH_SIZE = 8;
 
   async function uploadProducts() {
-    if (!selectedFile) return;
-    if (!confirm(`Upload "${selectedFile.name}" to Shopify? This will create new products.`)) return;
+    if (!fetchedProducts.length) return;
+    if (!confirm(`Upload ${fetchedProducts.length} new product(s) to Shopify?`)) return;
 
     $('btn-upload').disabled = true;
     $('btn-preview').disabled = true;
@@ -383,30 +256,21 @@
     $('result-banner').style.display = 'none';
     $('log').innerHTML = '';
     $('progress-bar').style.width = '0%';
-    $('progress-text').textContent = 'Parsing file…';
+    $('progress-text').textContent = 'Starting upload…';
 
-    let products;
-    try {
-      const xml = await selectedFile.text();
-      products = parseXmlLocally(xml);
-      log(`Parsed ${products.length} product(s). Uploading in batches of ${BATCH_SIZE}…`, 'log-info');
-    } catch (err) {
-      $('progress-text').textContent = 'Parse failed';
-      log(`Parse error: ${err.message}`, 'log-err');
-      showBanner('fail', `✗ ${err.message}`);
-      $('btn-upload').disabled = false; $('btn-preview').disabled = false;
-      return;
-    }
+    log(`Uploading ${fetchedProducts.length} product(s) in batches of ${BATCH_SIZE}…`, 'log-info');
 
     const batches = [];
-    for (let i = 0; i < products.length; i += BATCH_SIZE) batches.push(products.slice(i, i + BATCH_SIZE));
+    for (let i = 0; i < fetchedProducts.length; i += BATCH_SIZE) {
+      batches.push(fetchedProducts.slice(i, i + BATCH_SIZE));
+    }
 
     let totalCreated = 0, totalFailed = 0;
 
     for (let b = 0; b < batches.length; b++) {
       const batch = batches[b];
       const start = b * BATCH_SIZE + 1;
-      const end   = Math.min(start + batch.length - 1, products.length);
+      const end   = Math.min(start + batch.length - 1, fetchedProducts.length);
       $('progress-text').textContent = `Batch ${b+1}/${batches.length} — products ${start}–${end}…`;
 
       try {

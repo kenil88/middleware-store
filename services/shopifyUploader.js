@@ -37,16 +37,30 @@ class ShopifyUploader {
     return res.data.product;
   }
 
-  async findProductBySku(sku) {
-    if (!sku) return null;
-    const res = await this.client.get('/products.json', { params: { limit: 1 } });
-    // Search by variant SKU via GraphQL-less approach — check variants endpoint
-    const vRes = await this.client.get('/variants.json', { params: { limit: 250 } }).catch(() => null);
-    if (!vRes) return null;
-    const match = vRes.data.variants.find(v => v.sku === sku);
-    if (!match) return null;
-    const pRes = await this.client.get(`/products/${match.product_id}.json`);
-    return pRes.data.product;
+  async getAllSkus() {
+    const skus = new Set();
+    let pageInfo = null;
+    let first = true;
+
+    do {
+      const params = { limit: 250 };
+      if (first) params.fields = 'id,variants';
+      if (pageInfo) params.page_info = pageInfo;
+
+      const res = await this.client.get('/products.json', { params });
+      for (const p of res.data.products) {
+        for (const v of p.variants || []) {
+          if (v.sku) skus.add(v.sku.trim());
+        }
+      }
+
+      const link = res.headers['link'] || '';
+      const next = link.match(/<[^>]*[?&]page_info=([^&>]+)[^>]*>;\s*rel="next"/);
+      pageInfo = next ? decodeURIComponent(next[1]) : null;
+      first = false;
+    } while (pageInfo);
+
+    return skus;
   }
 
   // Upload products one by one with rate-limit delay.
