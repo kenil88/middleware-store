@@ -4,6 +4,7 @@ const path = require('path');
 const axios = require('axios');
 const { parseXml } = require('../services/xmlParser');
 const shopify = require('../services/shopifyUploader');
+const { getPublicKeyPem, decryptToken } = require('../services/cryptoKeys');
 
 const router = express.Router();
 
@@ -20,6 +21,12 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
 });
 
+// GET /api/pubkey — returns the RSA-OAEP public key so the browser can encrypt
+// the API auth token before sending it to this server
+router.get('/pubkey', (req, res) => {
+  res.json({ publicKey: getPublicKeyPem() });
+});
+
 // GET /api/test — verify Shopify connection
 router.get('/test', async (req, res) => {
   try {
@@ -31,21 +38,46 @@ router.get('/test', async (req, res) => {
 });
 
 // POST /api/fetch-from-url — fetch XML from an external API URL, parse it,
-// filter out SKUs already in Shopify, return only new products
+// filter out SKUs already in Shopify, return only new products.
+// encryptedToken (optional): RSA-OAEP encrypted Basic auth token from the browser.
 router.post('/fetch-from-url', async (req, res) => {
-  const { url } = req.body;
+  const { url, encryptedToken } = req.body;
   if (!url) return res.status(400).json({ error: 'url is required' });
+
+  // Decrypt the auth token on the server — never logged or stored
+  let authToken = process.env.API_AUTH_TOKEN || '';
+  if (encryptedToken) {
+    try {
+      authToken = decryptToken(encryptedToken);
+    } catch {
+      return res.status(400).json({ error: 'Failed to decrypt auth token. Please refresh the page and try again.' });
+    }
+  }
+
+  const headers = {
+    'SOAPAction': 'ReadMultiple',
+    'Content-Type': 'application/xml',
+    'Accept': 'application/xml, text/xml, */*',
+  };
+  if (authToken) headers['Authorization'] = `Basic ${authToken}`;
 
   let xml;
   try {
-    const xmlRes = await axios.get(url, {
-      responseType: 'text',
-      headers: { Accept: 'application/xml, text/xml, */*' },
-      timeout: 30000,
-    });
+    const xmlRes = await axios.get(url, { responseType: 'text', headers, timeout: 30000 });
     xml = typeof xmlRes.data === 'string' ? xmlRes.data : String(xmlRes.data);
   } catch (err) {
-    return res.status(502).json({ error: `Failed to fetch URL: ${err.message}` });
+    const status = err.response?.status;
+    // Include response body so the caller can see the upstream error detail
+    const detail = err.response?.data
+      ? (typeof err.response.data === 'string'
+          ? err.response.data.slice(0, 500)
+          : JSON.stringify(err.response.data).slice(0, 500))
+      : null;
+    const msg = status === 401 ? 'Unauthorised — check your auth token'
+              : status === 403 ? 'Forbidden — check your auth token'
+              : `Failed to fetch URL (HTTP ${status ?? 'network error'}): ${err.message}`;
+    console.error('[fetch-from-url] upstream error', status, detail ?? err.message);
+    return res.status(502).json({ error: msg, detail });
   }
 
   let allProducts;

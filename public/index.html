@@ -37,11 +37,17 @@
 
     .field { margin-bottom: 16px; }
     .field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
-    .field input[type=url] {
+    .field input {
       width: 100%; padding: 8px 12px; border: 1px solid #c9cccf; border-radius: 6px;
       font-size: 14px; outline: none; transition: border-color .15s;
     }
-    .field input[type=url]:focus { border-color: #008060; box-shadow: 0 0 0 2px #00806022; }
+    .field input:focus { border-color: #008060; box-shadow: 0 0 0 2px #00806022; }
+
+    .field .hint {
+      margin-top: 5px; font-size: 12px; color: #6d7175;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .field .hint svg { flex-shrink: 0; }
 
     /* Buttons */
     .btn-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
@@ -119,6 +125,16 @@
       <label for="api-url">API URL (must return XML)</label>
       <input type="url" id="api-url" placeholder="https://your-api.com/products.xml" />
     </div>
+    <div class="field">
+      <label for="auth-token">Authorization Token <span style="color:#6d7175;font-weight:400">(Basic, base64 encoded)</span></label>
+      <input type="password" id="auth-token" placeholder="Leave blank if not required" autocomplete="off" />
+      <p class="hint">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 2a5 5 0 0 1 5 5v1h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v1h6V7a3 3 0 0 0-3-3zm0 7a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1z" fill="#6d7175"/>
+        </svg>
+        Encrypted in your browser with the server's public key before being sent. Never stored.
+      </p>
+    </div>
     <div class="btn-row">
       <button class="btn-preview" onclick="fetchAndPreview()" id="btn-preview">&#128269; Fetch &amp; Preview</button>
       <button class="btn-primary" onclick="uploadProducts()" id="btn-upload" disabled>&#128640; Upload to Shopify</button>
@@ -152,6 +168,42 @@
   let fetchedProducts = [];
 
   fetch('/auth/me').then(r => { if (!r.ok) window.location.href = '/login'; });
+
+  // ── RSA-OAEP encryption ───────────────────────────────────────────────────────
+  // The server's public key is fetched once and cached for the session.
+  // The auth token is encrypted client-side so only the server (holding the
+  // private key) can read it. It is never stored in localStorage or cookies.
+  let _cryptoKey = null;
+
+  async function loadPublicKey() {
+    const res = await fetch('/api/pubkey');
+    if (!res.ok) throw new Error('Could not load encryption key from server');
+    const { publicKey } = await res.json();
+
+    // Strip PEM headers and decode base64 → ArrayBuffer
+    const b64 = publicKey.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+    _cryptoKey = await window.crypto.subtle.importKey(
+      'spki', bytes.buffer,
+      { name: 'RSA-OAEP', hash: 'SHA-256' },
+      false, ['encrypt']
+    );
+  }
+
+  async function encryptToken(plainText) {
+    if (!_cryptoKey) await loadPublicKey();
+    const encoded = new TextEncoder().encode(plainText);
+    const encrypted = await window.crypto.subtle.encrypt(
+      { name: 'RSA-OAEP' }, _cryptoKey, encoded
+    );
+    return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+  }
+
+  // Pre-load the key so it's ready when the user clicks Fetch
+  loadPublicKey().catch(() => {});
 
   async function logout() {
     await fetch('/auth/logout', { method: 'POST' });
@@ -195,19 +247,26 @@
     fetchedProducts = [];
 
     try {
+      // Encrypt the token in the browser before sending — never sent in plain text
+      const rawToken = $('auth-token').value.trim();
+      const encryptedToken = rawToken ? await encryptToken(rawToken) : '';
+
       const res = await fetch('/api/fetch-from-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, encryptedToken }),
       });
       if (res.status === 401) { window.location.href = '/login'; return; }
 
       const data = await safeJson(res);
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      if (!res.ok) {
+        const msg = data.error || `HTTP ${res.status}`;
+        const detail = data.detail ? `\n\nUpstream response:\n${data.detail}` : '';
+        throw new Error(msg + detail);
+      }
 
       fetchedProducts = data.products;
 
-      // Populate preview table
       const tbody = $('preview-body');
       tbody.innerHTML = '';
       fetchedProducts.forEach((p, i) => {
@@ -236,6 +295,8 @@
         $('btn-upload').disabled = false;
       }
     } catch (e) {
+      // Re-fetch the public key in case of a server cold-start key rotation
+      _cryptoKey = null;
       alert('Error: ' + e.message);
     } finally {
       $('btn-preview').disabled = false;
