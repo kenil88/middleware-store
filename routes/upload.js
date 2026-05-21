@@ -64,7 +64,6 @@ router.post('/fetch-from-url', async (req, res) => {
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
     <ReadMultiple xmlns="${soapNs}">
-      <filter/>
       <setSize>0</setSize>
     </ReadMultiple>
   </soap:Body>
@@ -79,7 +78,7 @@ router.post('/fetch-from-url', async (req, res) => {
 
   let xml;
   try {
-    const xmlRes = await axios.post(url, soapBody, { responseType: 'text', headers, timeout: 30000 });
+    const xmlRes = await axios.post(url, soapBody, { responseType: 'text', headers, timeout: 120000 });
     xml = typeof xmlRes.data === 'string' ? xmlRes.data : String(xmlRes.data);
   } catch (err) {
     const status = err.response?.status;
