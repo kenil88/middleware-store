@@ -251,21 +251,40 @@
       const rawToken = $('auth-token').value.trim();
       const encryptedToken = rawToken ? await encryptToken(rawToken) : '';
 
-      const res = await fetch('/api/fetch-from-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, encryptedToken }),
-      });
-      if (res.status === 401) { window.location.href = '/login'; return; }
+      // Fire both requests in parallel — NAV fetch and Shopify SKU list
+      $('btn-preview').textContent = '⏳ Fetching (this may take a minute)…';
+      const [navRes, skuRes] = await Promise.all([
+        fetch('/api/fetch-from-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, encryptedToken }),
+        }),
+        fetch('/api/shopify-skus'),
+      ]);
 
-      const data = await safeJson(res);
-      if (!res.ok) {
-        const msg = data.error || `HTTP ${res.status}`;
-        const detail = data.detail ? `\n\nUpstream response:\n${data.detail}` : '';
+      if (navRes.status === 401) { window.location.href = '/login'; return; }
+
+      const [navData, skuData] = await Promise.all([safeJson(navRes), safeJson(skuRes)]);
+
+      if (!navRes.ok) {
+        const msg = navData.error || `HTTP ${navRes.status}`;
+        const detail = navData.detail ? `\n\nUpstream response:\n${navData.detail}` : '';
         throw new Error(msg + detail);
       }
+      if (!skuRes.ok) throw new Error(skuData.error || `Shopify SKU fetch failed (HTTP ${skuRes.status})`);
 
-      fetchedProducts = data.products;
+      // Filter client-side — no round-trip needed
+      const existingSkus = new Set(skuData.skus || []);
+      const allProducts = navData.products || [];
+      const newProducts = [];
+      const skipped = [];
+      for (const p of allProducts) {
+        const sku = p.variants?.[0]?.sku?.trim();
+        if (sku && existingSkus.has(sku)) skipped.push({ title: p.title, sku });
+        else newProducts.push(p);
+      }
+
+      fetchedProducts = newProducts;
 
       const tbody = $('preview-body');
       tbody.innerHTML = '';
@@ -279,18 +298,18 @@
         tbody.appendChild(tr);
       });
 
-      $('preview-heading').textContent = `New Products (${data.newCount})`;
+      $('preview-heading').textContent = `New Products (${fetchedProducts.length})`;
 
-      let metaText = `${data.total} product(s) fetched from API.`;
-      if (data.skippedCount > 0) {
-        metaText += ` <span class="skip-note">${data.skippedCount} already in Shopify — skipped.</span>`;
+      let metaText = `${allProducts.length} product(s) fetched from API.`;
+      if (skipped.length > 0) {
+        metaText += ` <span class="skip-note">${skipped.length} already in Shopify — skipped.</span>`;
       }
       $('preview-meta').innerHTML = metaText;
       $('preview-section').style.display = 'block';
 
       if (fetchedProducts.length === 0) {
         $('btn-upload').disabled = true;
-        if (data.skippedCount > 0) alert('All products from the API already exist in Shopify. Nothing to upload.');
+        if (skipped.length > 0) alert('All products from the API already exist in Shopify. Nothing to upload.');
       } else {
         $('btn-upload').disabled = false;
       }

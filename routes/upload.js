@@ -102,32 +102,19 @@ router.post('/fetch-from-url', async (req, res) => {
     return res.status(422).json({ error: `XML parse error: ${err.message}` });
   }
 
-  let existingSkus;
+  // Return all parsed products — the client filters against /api/shopify-skus
+  res.json({ total: allProducts.length, products: allProducts });
+});
+
+// GET /api/shopify-skus — returns all SKUs currently in Shopify.
+// Called in parallel with /api/fetch-from-url so neither blocks the other.
+router.get('/shopify-skus', async (req, res) => {
   try {
-    existingSkus = await shopify.getAllSkus();
+    const skus = await shopify.getAllSkus();
+    res.json({ skus: [...skus] });
   } catch (err) {
-    return res.status(502).json({ error: `Shopify error: ${err.message}` });
+    res.status(502).json({ error: `Shopify error: ${err.message}` });
   }
-
-  const newProducts = [];
-  const skipped = [];
-
-  for (const p of allProducts) {
-    const sku = p.variants?.[0]?.sku?.trim();
-    if (sku && existingSkus.has(sku)) {
-      skipped.push({ title: p.title, sku });
-    } else {
-      newProducts.push(p);
-    }
-  }
-
-  res.json({
-    total: allProducts.length,
-    newCount: newProducts.length,
-    skippedCount: skipped.length,
-    products: newProducts,
-    skipped,
-  });
 });
 
 // POST /api/parse — parse XML and return preview (no Shopify upload)
