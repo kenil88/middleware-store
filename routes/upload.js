@@ -54,6 +54,22 @@ router.post('/fetch-from-url', async (req, res) => {
     }
   }
 
+  // Extract the Dynamics NAV page name from the URL to build the correct namespace.
+  // URL format: .../WS/[Company]/Page/[PageName]
+  const pageMatch = url.match(/\/Page\/([^/?&#]+)/i);
+  const pageName = pageMatch ? pageMatch[1].toLowerCase() : 'items';
+  const soapNs = `urn:microsoft-dynamics-schemas/page/${pageName}`;
+
+  const soapBody = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <ReadMultiple xmlns="${soapNs}">
+      <filter/>
+      <setSize>0</setSize>
+    </ReadMultiple>
+  </soap:Body>
+</soap:Envelope>`;
+
   const headers = {
     'SOAPAction': 'ReadMultiple',
     'Content-Type': 'application/xml',
@@ -63,7 +79,7 @@ router.post('/fetch-from-url', async (req, res) => {
 
   let xml;
   try {
-    const xmlRes = await axios.get(url, { responseType: 'text', headers, timeout: 30000 });
+    const xmlRes = await axios.post(url, soapBody, { responseType: 'text', headers, timeout: 30000 });
     xml = typeof xmlRes.data === 'string' ? xmlRes.data : String(xmlRes.data);
   } catch (err) {
     const status = err.response?.status;
