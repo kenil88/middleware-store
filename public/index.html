@@ -135,6 +135,22 @@
         Encrypted in your browser with the server's public key before being sent. Never stored.
       </p>
     </div>
+
+    <!-- Optional SOAP filters -->
+    <div style="border-top:1px solid #e1e3e5;margin:16px 0 16px;"></div>
+    <p style="font-size:13px;font-weight:600;margin-bottom:12px;color:#202223;">Filters <span style="font-weight:400;color:#6d7175">(optional — leave blank to fetch all)</span></p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="field" style="margin-bottom:0">
+        <label for="filter-sku">SKU (No)</label>
+        <input type="text" id="filter-sku" placeholder="e.g. ITEM001 or ITEM*" />
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label for="filter-season">Season Code</label>
+        <input type="text" id="filter-season" placeholder="e.g. SS25 or AW*" />
+      </div>
+    </div>
+    <p style="font-size:12px;color:#6d7175;margin-top:6px;">Tip: use <code>*</code> as wildcard (e.g. <code>SS*</code>) or <code>..</code> for ranges (e.g. <code>A..Z</code>).</p>
+
     <div class="btn-row">
       <button class="btn-preview" onclick="fetchAndPreview()" id="btn-preview">&#128269; Fetch &amp; Preview</button>
       <button class="btn-primary" onclick="uploadProducts()" id="btn-upload" disabled>&#128640; Upload to Shopify</button>
@@ -251,13 +267,20 @@
       const rawToken = $('auth-token').value.trim();
       const encryptedToken = rawToken ? await encryptToken(rawToken) : '';
 
+      // Collect optional filters (empty string = omit filter)
+      const filters = [];
+      const skuFilter = $('filter-sku').value.trim();
+      const seasonFilter = $('filter-season').value.trim();
+      if (skuFilter)    filters.push({ field: 'No',          criteria: skuFilter });
+      if (seasonFilter) filters.push({ field: 'Season_Code', criteria: seasonFilter });
+
       // Fire both requests in parallel — NAV fetch and Shopify SKU list
       $('btn-preview').textContent = '⏳ Fetching (this may take a minute)…';
       const [navRes, skuRes] = await Promise.all([
         fetch('/api/fetch-from-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url, encryptedToken }),
+          body: JSON.stringify({ url, encryptedToken, filters }),
         }),
         fetch('/api/shopify-skus'),
       ]);

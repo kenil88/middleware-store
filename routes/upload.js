@@ -41,7 +41,7 @@ router.get('/test', async (req, res) => {
 // filter out SKUs already in Shopify, return only new products.
 // encryptedToken (optional): RSA-OAEP encrypted Basic auth token from the browser.
 router.post('/fetch-from-url', async (req, res) => {
-  const { url, encryptedToken } = req.body;
+  const { url, encryptedToken, filters } = req.body;
   if (!url) return res.status(400).json({ error: 'url is required' });
 
   // Decrypt the auth token on the server — never logged or stored
@@ -60,10 +60,17 @@ router.post('/fetch-from-url', async (req, res) => {
   const pageName = pageMatch ? pageMatch[1].toLowerCase() : 'items';
   const soapNs = `urn:microsoft-dynamics-schemas/page/${pageName}`;
 
+  // Build optional <filter> elements from user-supplied criteria
+  const activeFilters = Array.isArray(filters) ? filters.filter(f => f.field && f.criteria) : [];
+  const filterXml = activeFilters
+    .map(f => `    <filter><Field>${f.field}</Field><Criteria>${f.criteria}</Criteria></filter>`)
+    .join('\n');
+
   const soapBody = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
     <ReadMultiple xmlns="${soapNs}">
+${filterXml}
       <setSize>0</setSize>
     </ReadMultiple>
   </soap:Body>
