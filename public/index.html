@@ -62,6 +62,20 @@
     .btn-secondary:not(:disabled):hover { background: #e4e5e7; }
     .btn-preview { background: #005bd3; color: #fff; }
     .btn-preview:not(:disabled):hover { background: #0047a7; }
+    .btn-browse { background: #f1f2f3; color: #202223; border: 1px solid #c9cccf; padding: 6px 12px; font-size: 12px; }
+    .btn-browse:not(:disabled):hover { background: #e4e5e7; }
+
+    /* Season code dropdown */
+    #season-dropdown {
+      position: absolute; z-index: 100; background: #fff;
+      border: 1px solid #c9cccf; border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.12);
+      max-height: 220px; overflow-y: auto; min-width: 200px;
+    }
+    #season-dropdown div {
+      padding: 8px 14px; font-size: 13px; cursor: pointer;
+    }
+    #season-dropdown div:hover { background: #f1f2f3; }
 
     /* Progress */
     #progress-section { display: none; }
@@ -144,9 +158,13 @@
         <label for="filter-sku">SKU (No)</label>
         <input type="text" id="filter-sku" placeholder="e.g. ITEM001 or ITEM*" />
       </div>
-      <div class="field" style="margin-bottom:0">
+      <div class="field" style="margin-bottom:0;position:relative;">
         <label for="filter-season">Season Code <span style="color:#d72c0d">*</span></label>
-        <input type="text" id="filter-season" placeholder="e.g. SS25 or AW*" />
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="text" id="filter-season" placeholder="e.g. SS25 or AW*" style="flex:1" />
+          <button class="btn-browse" id="btn-browse-season" onclick="browseSeasons()" type="button">&#128269; Browse</button>
+        </div>
+        <div id="season-dropdown" style="display:none;"></div>
       </div>
     </div>
     <p style="font-size:12px;color:#6d7175;margin-top:6px;">Tip: use <code>*</code> as wildcard (e.g. <code>SS*</code>) or <code>..</code> for ranges (e.g. <code>A..Z</code>). <strong>Season Code is required</strong> to avoid timeout.</p>
@@ -249,6 +267,55 @@
     const text = await res.text();
     try { return JSON.parse(text); }
     catch { throw new Error(`Server error (${res.status}): ${text.slice(0, 200)}`); }
+  }
+
+  // ── Browse Season Codes ───────────────────────────────────────────────────────
+  async function browseSeasons() {
+    const url = $('api-url').value.trim();
+    if (!url) { alert('Please enter an API URL first.'); return; }
+
+    const btn = $('btn-browse-season');
+    btn.disabled = true;
+    btn.textContent = '⏳ Loading…';
+
+    try {
+      const rawToken = $('auth-token').value.trim();
+      const encryptedToken = rawToken ? await encryptToken(rawToken) : '';
+
+      const res = await fetch('/api/browse-seasons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, encryptedToken }),
+      });
+      const data = await safeJson(res);
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+      const seasons = data.seasons || [];
+      if (seasons.length === 0) { alert('No Season Codes found in the sample records.'); return; }
+
+      const dd = $('season-dropdown');
+      dd.innerHTML = '';
+      seasons.forEach(s => {
+        const div = document.createElement('div');
+        div.textContent = s;
+        div.onclick = () => {
+          $('filter-season').value = s;
+          dd.style.display = 'none';
+        };
+        dd.appendChild(div);
+      });
+      dd.style.display = 'block';
+
+      // Close on outside click
+      const close = (e) => { if (!dd.contains(e.target) && e.target.id !== 'btn-browse-season') { dd.style.display = 'none'; document.removeEventListener('click', close); } };
+      setTimeout(() => document.addEventListener('click', close), 0);
+    } catch (e) {
+      _cryptoKey = null;
+      alert('Error browsing seasons: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🔍 Browse';
+    }
   }
 
   // ── Fetch & Preview ───────────────────────────────────────────────────────────

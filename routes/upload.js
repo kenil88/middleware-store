@@ -113,6 +113,77 @@ ${filterXml}
   res.json({ total: allProducts.length, products: allProducts });
 });
 
+// POST /api/browse-seasons — fetches a small sample from NAV and returns unique Season Codes.
+// Uses setSize:200 so it responds quickly even without filters.
+router.post('/browse-seasons', async (req, res) => {
+  const { url, encryptedToken } = req.body;
+  if (!url) return res.status(400).json({ error: 'url is required' });
+
+  let authToken = process.env.API_AUTH_TOKEN || '';
+  if (encryptedToken) {
+    try { authToken = decryptToken(encryptedToken); }
+    catch { return res.status(400).json({ error: 'Failed to decrypt auth token. Please refresh and try again.' }); }
+  }
+
+  const pageMatch = url.match(/\/Page\/([^/?&#]+)/i);
+  const pageName = pageMatch ? pageMatch[1].toLowerCase() : 'items';
+  const soapNs = `urn:microsoft-dynamics-schemas/page/${pageName}`;
+
+  const soapBody = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <ReadMultiple xmlns="${soapNs}">
+      <setSize>200</setSize>
+    </ReadMultiple>
+  </soap:Body>
+</soap:Envelope>`;
+
+  const headers = {
+    'SOAPAction': 'ReadMultiple',
+    'Content-Type': 'application/xml',
+    'Accept': 'application/xml, text/xml, */*',
+  };
+  if (authToken) headers['Authorization'] = `Basic ${authToken}`;
+
+  try {
+    const xmlRes = await axios.post(url, soapBody, { responseType: 'text', headers, timeout: 30000 });
+    const xml = typeof xmlRes.data === 'string' ? xmlRes.data : String(xmlRes.data);
+    // Extract Season_Code directly from the raw XML instead of going through the full parser
+    const xml2js = require('xml2js');
+    const rawParsed = await new xml2js.Parser({ explicitArray: false, trim: true }).parseStringPromise(xml);
+
+    // Walk envelope → body → result → items
+    let items = [];
+    try {
+      const envKey = Object.keys(rawParsed).find(k => k.toLowerCase().includes('envelope'));
+      const bodyKey = Object.keys(rawParsed[envKey]).find(k => k.toLowerCase().includes('body'));
+      const body = rawParsed[envKey][bodyKey];
+      const outerKey = Object.keys(body).find(k => k !== '$');
+      const outer = body[outerKey];
+      const innerKey = Object.keys(outer).find(k => k !== '$');
+      const inner = outer[innerKey];
+      const itemsKey = Object.keys(inner).find(k => k !== '$');
+      const raw = inner[itemsKey];
+      items = Array.isArray(raw) ? raw : [raw];
+    } catch { /* if structure differs, items stays empty */ }
+
+    const seasons = [...new Set(
+      items.map(it => (it.Season_Code || '')).filter(Boolean)
+    )].sort();
+
+    res.json({ total: items.length, seasons });
+  } catch (err) {
+    const status = err.response?.status;
+    const detail = err.response?.data
+      ? (typeof err.response.data === 'string' ? err.response.data.slice(0, 300) : JSON.stringify(err.response.data).slice(0, 300))
+      : null;
+    const msg = status === 401 ? 'Unauthorised — check your auth token'
+              : status === 403 ? 'Forbidden — check your auth token'
+              : `Failed to fetch (HTTP ${status ?? 'network error'}): ${err.message}`;
+    res.status(502).json({ error: msg, detail });
+  }
+});
+
 // GET /api/shopify-skus — returns all SKUs currently in Shopify.
 // Called in parallel with /api/fetch-from-url so neither blocks the other.
 router.get('/shopify-skus', async (req, res) => {
