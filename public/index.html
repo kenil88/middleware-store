@@ -366,10 +366,18 @@
         const detail = navData.detail ? `\n\nUpstream response:\n${navData.detail}` : '';
         throw new Error(msg + detail);
       }
-      if (!skuRes.ok) throw new Error(skuData.error || `Shopify SKU fetch failed (HTTP ${skuRes.status})`);
+      // Shopify SKU check is best-effort — if Shopify credentials are invalid,
+      // still show NAV products but warn that duplicate check was skipped.
+      let existingSkus = new Set();
+      let skuCheckFailed = false;
+      if (!skuRes.ok) {
+        skuCheckFailed = true;
+        console.warn('Shopify SKU check failed:', skuData.error);
+      } else {
+        existingSkus = new Set(skuData.skus || []);
+      }
 
       // Filter client-side — no round-trip needed
-      const existingSkus = new Set(skuData.skus || []);
       const allProducts = navData.products || [];
       const newProducts = [];
       const skipped = [];
@@ -398,6 +406,9 @@
       let metaText = `${allProducts.length} product(s) fetched from API.`;
       if (skipped.length > 0) {
         metaText += ` <span class="skip-note">${skipped.length} already in Shopify — skipped.</span>`;
+      }
+      if (skuCheckFailed) {
+        metaText += ` <span style="color:#d72c0d;font-weight:600">⚠ Shopify duplicate check failed (invalid credentials) — showing all products. Fix Shopify token in Vercel env vars.</span>`;
       }
       $('preview-meta').innerHTML = metaText;
       $('preview-section').style.display = 'block';
