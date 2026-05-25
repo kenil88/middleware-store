@@ -71,7 +71,7 @@ router.post('/fetch-from-url', async (req, res) => {
   <soap:Body>
     <ReadMultiple xmlns="${soapNs}">
 ${filterXml}
-      <setSize>0</setSize>
+      <setSize>500</setSize>
     </ReadMultiple>
   </soap:Body>
 </soap:Envelope>`;

@@ -145,11 +145,11 @@
         <input type="text" id="filter-sku" placeholder="e.g. ITEM001 or ITEM*" />
       </div>
       <div class="field" style="margin-bottom:0">
-        <label for="filter-season">Season Code</label>
+        <label for="filter-season">Season Code <span style="color:#d72c0d">*</span></label>
         <input type="text" id="filter-season" placeholder="e.g. SS25 or AW*" />
       </div>
     </div>
-    <p style="font-size:12px;color:#6d7175;margin-top:6px;">Tip: use <code>*</code> as wildcard (e.g. <code>SS*</code>) or <code>..</code> for ranges (e.g. <code>A..Z</code>).</p>
+    <p style="font-size:12px;color:#6d7175;margin-top:6px;">Tip: use <code>*</code> as wildcard (e.g. <code>SS*</code>) or <code>..</code> for ranges (e.g. <code>A..Z</code>). <strong>Season Code is required</strong> to avoid timeout.</p>
 
     <div class="btn-row">
       <button class="btn-preview" onclick="fetchAndPreview()" id="btn-preview">&#128269; Fetch &amp; Preview</button>
@@ -255,6 +255,11 @@
   async function fetchAndPreview() {
     const url = $('api-url').value.trim();
     if (!url) { alert('Please enter an API URL.'); return; }
+    if (!$('filter-season').value.trim()) {
+      alert('Please enter a Season Code filter.\n\nFetching all products at once will timeout on the server. Enter a season (e.g. SS25) to limit the results.');
+      $('filter-season').focus();
+      return;
+    }
 
     $('btn-preview').disabled = true;
     $('btn-preview').textContent = '⏳ Fetching…';
