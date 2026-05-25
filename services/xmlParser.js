@@ -209,6 +209,31 @@ function parseProduct(p) {
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
+function extractLastKeyFromParsed(result) {
+  try {
+    const envKey = Object.keys(result).find(k => k.toLowerCase().includes('envelope'));
+    if (!envKey) return null;
+    const envelope = result[envKey];
+    const bodyKey = Object.keys(envelope).find(k => k.toLowerCase().includes('body'));
+    if (!bodyKey) return null;
+    const body = envelope[bodyKey];
+    const outerKey = Object.keys(body).find(k => k !== '$');
+    if (!outerKey) return null;
+    const outer = body[outerKey];
+    const innerKey = Object.keys(outer).find(k => k !== '$');
+    if (!innerKey) return null;
+    const inner = outer[innerKey];
+    const itemsKey = Object.keys(inner).find(k => k !== '$');
+    if (!itemsKey) return null;
+    const raw = inner[itemsKey];
+    const list = Array.isArray(raw) ? raw : [raw];
+    const last = list[list.length - 1];
+    return last ? val(last.Key) || null : null;
+  } catch {
+    return null;
+  }
+}
+
 async function parseXml(xmlString) {
   const result = await parser.parseStringPromise(xmlString);
 
@@ -226,4 +251,22 @@ async function parseXml(xmlString) {
   return list.filter(Boolean).map(parseProduct);
 }
 
-module.exports = { parseXml };
+// Like parseXml but also returns the bookmark key of the last Dynamics item for pagination.
+async function parseXmlWithKey(xmlString) {
+  const result = await parser.parseStringPromise(xmlString);
+
+  if (Object.keys(result).some(k => k.toLowerCase().includes('envelope'))) {
+    return {
+      products: parseDynamicsEnvelope(result),
+      lastKey: extractLastKeyFromParsed(result),
+    };
+  }
+
+  const root = result.products || result.catalog || result.feed || result;
+  const productKey = Object.keys(root).find(k => k !== '$') || 'product';
+  const rawProducts = root[productKey] || root.product || [];
+  const list = Array.isArray(rawProducts) ? rawProducts : [rawProducts];
+  return { products: list.filter(Boolean).map(parseProduct), lastKey: null };
+}
+
+module.exports = { parseXml, parseXmlWithKey };

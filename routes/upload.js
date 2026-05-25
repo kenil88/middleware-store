@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const axios = require('axios');
-const { parseXml } = require('../services/xmlParser');
+const { parseXml, parseXmlWithKey } = require('../services/xmlParser');
 const shopify = require('../services/shopifyUploader');
 const { getPublicKeyPem, decryptToken } = require('../services/cryptoKeys');
 
@@ -66,16 +66,6 @@ router.post('/fetch-from-url', async (req, res) => {
     .map(f => `    <filter><Field>${f.field}</Field><Criteria>${f.criteria}</Criteria></filter>`)
     .join('\n');
 
-  const soapBody = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <ReadMultiple xmlns="${soapNs}">
-${filterXml}
-      <setSize>500</setSize>
-    </ReadMultiple>
-  </soap:Body>
-</soap:Envelope>`;
-
   const headers = {
     'SOAPAction': 'ReadMultiple',
     'Content-Type': 'application/xml',
@@ -83,30 +73,54 @@ ${filterXml}
   };
   if (authToken) headers['Authorization'] = `Basic ${authToken}`;
 
-  let xml;
-  try {
-    const xmlRes = await axios.post(url, soapBody, { responseType: 'text', headers, timeout: 120000 });
-    xml = typeof xmlRes.data === 'string' ? xmlRes.data : String(xmlRes.data);
-  } catch (err) {
-    const status = err.response?.status;
-    // Include response body so the caller can see the upstream error detail
-    const detail = err.response?.data
-      ? (typeof err.response.data === 'string'
-          ? err.response.data.slice(0, 500)
-          : JSON.stringify(err.response.data).slice(0, 500))
-      : null;
-    const msg = status === 401 ? 'Unauthorised — check your auth token'
-              : status === 403 ? 'Forbidden — check your auth token'
-              : `Failed to fetch URL (HTTP ${status ?? 'network error'}): ${err.message}`;
-    console.error('[fetch-from-url] upstream error', status, detail ?? err.message);
-    return res.status(502).json({ error: msg, detail });
-  }
+  const PAGE_SIZE = 500;
+  let allProducts = [];
+  let bookmarkKey = null;
 
-  let allProducts;
-  try {
-    allProducts = await parseXml(xml);
-  } catch (err) {
-    return res.status(422).json({ error: `XML parse error: ${err.message}` });
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const bookmarkXml = bookmarkKey ? `      <bookmarkKey>${bookmarkKey}</bookmarkKey>\n` : '';
+    const soapBody = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <ReadMultiple xmlns="${soapNs}">
+${filterXml}
+${bookmarkXml}      <setSize>${PAGE_SIZE}</setSize>
+    </ReadMultiple>
+  </soap:Body>
+</soap:Envelope>`;
+
+    let xml;
+    try {
+      const xmlRes = await axios.post(url, soapBody, { responseType: 'text', headers, timeout: 120000 });
+      xml = typeof xmlRes.data === 'string' ? xmlRes.data : String(xmlRes.data);
+    } catch (err) {
+      const status = err.response?.status;
+      const detail = err.response?.data
+        ? (typeof err.response.data === 'string'
+            ? err.response.data.slice(0, 500)
+            : JSON.stringify(err.response.data).slice(0, 500))
+        : null;
+      const msg = status === 401 ? 'Unauthorised — check your auth token'
+                : status === 403 ? 'Forbidden — check your auth token'
+                : `Failed to fetch URL (HTTP ${status ?? 'network error'}): ${err.message}`;
+      console.error('[fetch-from-url] upstream error', status, detail ?? err.message);
+      return res.status(502).json({ error: msg, detail });
+    }
+
+    let batch, lastKey;
+    try {
+      ({ products: batch, lastKey } = await parseXmlWithKey(xml));
+    } catch (err) {
+      return res.status(422).json({ error: `XML parse error: ${err.message}` });
+    }
+
+    allProducts = allProducts.concat(batch);
+
+    // Stop when we got fewer items than the page size (last page) or have no key to continue
+    if (batch.length < PAGE_SIZE || !lastKey) break;
+
+    bookmarkKey = lastKey;
   }
 
   // Return all parsed products — the client filters against /api/shopify-skus
