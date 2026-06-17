@@ -563,9 +563,21 @@
             <input type="text" id="api-url" placeholder="https://your-api.com/products.xml" autocomplete="off" />
           </div>
           <div class="field">
-            <label for="auth-token">Authorization Token <span style="color:#6d7175;font-weight:400">(Basic, base64 encoded)</span></label>
-            <input type="password" id="auth-token" placeholder="Leave blank if not required" autocomplete="off" />
-            <p class="hint">
+            <label for="auth-token">
+              Authorization Token <span style="color:#6d7175;font-weight:400">(Basic, base64 encoded)</span>
+              <span id="token-override-link" style="display:none;margin-left:10px;font-size:11px;font-weight:400;color:#005bd3;cursor:pointer;text-decoration:underline;" onclick="overrideServerToken()">Override</span>
+            </label>
+            <div style="position:relative;">
+              <input type="password" id="auth-token" placeholder="Leave blank if not required" autocomplete="off" />
+              <span id="token-lock-badge" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:600;color:#008060;background:#d3f5e3;border:1px solid #95d0b0;border-radius:99px;padding:2px 8px;pointer-events:none;">🔒 From .env</span>
+            </div>
+            <p class="hint" id="token-hint-env" style="display:none;">
+              <svg width="13" height="13" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 2a5 5 0 0 1 5 5v1h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v1h6V7a3 3 0 0 0-3-3zm0 7a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1z" fill="#008060"/>
+              </svg>
+              Token loaded from server <code>.env</code> — not exposed to the browser. Click Override to use a different token.
+            </p>
+            <p class="hint" id="token-hint-manual">
               <svg width="13" height="13" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M10 2a5 5 0 0 1 5 5v1h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v1h6V7a3 3 0 0 0-3-3zm0 7a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1z" fill="#6d7175"/>
               </svg>
@@ -742,6 +754,51 @@
     }
 
     loadPublicKey().catch(() => {});
+
+    // ── Server token detection ────────────────────────────────────────────────────
+    let _serverHasToken = false;
+    let _tokenOverridden = false;
+
+    function applyServerTokenUI(hasToken) {
+      _serverHasToken = hasToken;
+      const input = $('auth-token');
+      const badge = $('token-lock-badge');
+      const hintEnv = $('token-hint-env');
+      const hintManual = $('token-hint-manual');
+      const overrideLink = $('token-override-link');
+
+      if (hasToken && !_tokenOverridden) {
+        input.value = '';
+        input.placeholder = 'Using token from server (.env)';
+        input.readOnly = true;
+        input.style.background = '#f9fafb';
+        input.style.color = '#6d7175';
+        badge.style.display = 'inline-block';
+        hintEnv.style.display = 'flex';
+        hintManual.style.display = 'none';
+        overrideLink.style.display = 'inline';
+      } else {
+        input.readOnly = false;
+        input.placeholder = 'Leave blank if not required';
+        input.style.background = '';
+        input.style.color = '';
+        badge.style.display = 'none';
+        hintEnv.style.display = 'none';
+        hintManual.style.display = 'flex';
+        overrideLink.style.display = 'none';
+      }
+    }
+
+    function overrideServerToken() {
+      _tokenOverridden = true;
+      applyServerTokenUI(false);
+      $('auth-token').focus();
+    }
+
+    fetch('/api/has-server-token')
+      .then(r => r.json())
+      .then(d => applyServerTokenUI(d.hasToken))
+      .catch(() => {});
 
     async function logout() {
       await fetch('/auth/logout', { method: 'POST' });

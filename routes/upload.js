@@ -27,6 +27,12 @@ router.get('/pubkey', (req, res) => {
   res.json({ publicKey: getPublicKeyPem() });
 });
 
+// GET /api/has-server-token — tells the client whether API_AUTH_TOKEN is set in env.
+// Returns only a boolean; the token itself is never exposed to the browser.
+router.get('/has-server-token', (req, res) => {
+  res.json({ hasToken: Boolean(process.env.API_AUTH_TOKEN) });
+});
+
 // GET /api/test — verify Shopify connection
 router.get('/test', async (req, res) => {
   try {
