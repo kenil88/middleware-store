@@ -4,48 +4,282 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shopify Middlware API's</title>
+  <title>Shopify Middleware</title>
   <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #f4f6f8;
       color: #202223;
       min-height: 100vh;
-      padding: 32px 16px;
+      display: flex;
     }
 
-    .container {
-      max-width: 760px;
-      margin: 0 auto;
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 240px;
+      min-height: 100vh;
+      background: #1a1a2e;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 200;
     }
 
-    h1 {
-      font-size: 24px;
-      font-weight: 700;
+    .sidebar-brand {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .sidebar-brand .brand-icon {
+      font-size: 22px;
       margin-bottom: 4px;
-      color: #008060;
     }
 
-    .subtitle {
-      color: #6d7175;
+    .sidebar-brand h2 {
       font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.3;
+    }
+
+    .sidebar-brand p {
+      font-size: 11px;
+      color: rgba(255,255,255,.45);
+      margin-top: 2px;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 12px 0;
+      overflow-y: auto;
+    }
+
+    .nav-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.3);
+      padding: 12px 20px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: rgba(255,255,255,.65);
+      cursor: pointer;
+      border-radius: 0;
+      border-left: 3px solid transparent;
+      transition: background .15s, color .15s, border-color .15s;
+      user-select: none;
+    }
+
+    .nav-item:hover {
+      background: rgba(255,255,255,.06);
+      color: #fff;
+    }
+
+    .nav-item.active {
+      background: rgba(0,128,96,.18);
+      color: #5ee8be;
+      border-left-color: #008060;
+    }
+
+    .nav-item .nav-icon {
+      font-size: 16px;
+      width: 20px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .nav-item .badge {
+      margin-left: auto;
+      background: #008060;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 99px;
+    }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+
+    .btn-logout {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 9px 12px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 6px;
+      color: rgba(255,255,255,.65);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+
+    .btn-logout:hover {
+      background: rgba(215,44,13,.2);
+      border-color: rgba(215,44,13,.4);
+      color: #f4b4af;
+    }
+
+    /* ── Main area ── */
+    .main {
+      margin-left: 240px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      background: #fff;
+      border-bottom: 1px solid #e1e3e5;
+      padding: 0 28px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #202223;
+    }
+
+    .topbar-meta {
+      font-size: 12px;
+      color: #6d7175;
+    }
+
+    .page-content {
+      padding: 28px;
+      flex: 1;
+    }
+
+    /* ── Views ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── Dashboard ── */
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 { font-size: 22px; font-weight: 700; color: #202223; }
+    .page-header p { font-size: 14px; color: #6d7175; margin-top: 4px; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
       margin-bottom: 28px;
     }
 
+    .stat-card {
+      background: #fff;
+      border: 1px solid #e1e3e5;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .stat-card .stat-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6d7175;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 8px;
+    }
+
+    .stat-card .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #202223;
+      line-height: 1;
+    }
+
+    .stat-card .stat-sub {
+      font-size: 12px;
+      color: #6d7175;
+      margin-top: 6px;
+    }
+
+    .stat-card.green .stat-value { color: #008060; }
+    .stat-card.blue  .stat-value { color: #005bd3; }
+    .stat-card.amber .stat-value { color: #b98900; }
+
+    .quick-actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .action-card {
+      background: #fff;
+      border: 1px solid #e1e3e5;
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    .action-card:hover {
+      border-color: #008060;
+      box-shadow: 0 2px 12px rgba(0,128,96,.1);
+    }
+
+    .action-card .ac-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .action-card h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #202223;
+      margin-bottom: 4px;
+    }
+
+    .action-card p {
+      font-size: 12px;
+      color: #6d7175;
+    }
+
+    .coming-soon-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      background: #f1f2f3;
+      color: #6d7175;
+      border-radius: 99px;
+      padding: 2px 8px;
+      margin-top: 6px;
+    }
+
+    /* ── Cards (shared) ── */
     .card {
       background: #fff;
       border-radius: 12px;
       border: 1px solid #e1e3e5;
       padding: 24px;
       margin-bottom: 20px;
+      max-width: 800px;
     }
 
     .card h2 {
@@ -55,9 +289,7 @@
       color: #202223;
     }
 
-    .field {
-      margin-bottom: 16px;
-    }
+    .field { margin-bottom: 16px; }
 
     .field label {
       display: block;
@@ -90,10 +322,6 @@
       gap: 5px;
     }
 
-    .field .hint svg {
-      flex-shrink: 0;
-    }
-
     /* Buttons */
     .btn-row {
       display: flex;
@@ -102,112 +330,42 @@
       flex-wrap: wrap;
     }
 
-    button {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity .15s;
-    }
+    button { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
 
-    button:disabled {
-      opacity: .5;
-      cursor: not-allowed;
-    }
+    .btn-primary { background: #008060; color: #fff; }
+    .btn-primary:not(:disabled):hover { background: #006e52; }
 
-    .btn-primary {
-      background: #008060;
-      color: #fff;
-    }
+    .btn-secondary { background: #f1f2f3; color: #202223; border: 1px solid #c9cccf; }
+    .btn-secondary:not(:disabled):hover { background: #e4e5e7; }
 
-    .btn-primary:not(:disabled):hover {
-      background: #006e52;
-    }
+    .btn-preview { background: #005bd3; color: #fff; }
+    .btn-preview:not(:disabled):hover { background: #0047a7; }
 
-    .btn-secondary {
-      background: #f1f2f3;
-      color: #202223;
-      border: 1px solid #c9cccf;
-    }
+    .btn-browse { background: #f1f2f3; color: #202223; border: 1px solid #c9cccf; padding: 6px 12px; font-size: 12px; }
+    .btn-browse:not(:disabled):hover { background: #e4e5e7; }
 
-    .btn-secondary:not(:disabled):hover {
-      background: #e4e5e7;
-    }
-
-    .btn-preview {
-      background: #005bd3;
-      color: #fff;
-    }
-
-    .btn-preview:not(:disabled):hover {
-      background: #0047a7;
-    }
-
-    .btn-browse {
-      background: #f1f2f3;
-      color: #202223;
-      border: 1px solid #c9cccf;
-      padding: 6px 12px;
-      font-size: 12px;
-    }
-
-    .btn-browse:not(:disabled):hover {
-      background: #e4e5e7;
-    }
-
-    /* Season code dropdown */
+    /* Season dropdown */
     #season-dropdown {
       position: absolute;
       z-index: 100;
       background: #fff;
       border: 1px solid #c9cccf;
       border-radius: 6px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, .12);
+      box-shadow: 0 4px 12px rgba(0,0,0,.12);
       max-height: 220px;
       overflow-y: auto;
       min-width: 200px;
     }
-
-    #season-dropdown div {
-      padding: 8px 14px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-
-    #season-dropdown div:hover {
-      background: #f1f2f3;
-    }
+    #season-dropdown div { padding: 8px 14px; font-size: 13px; cursor: pointer; }
+    #season-dropdown div:hover { background: #f1f2f3; }
 
     /* Progress */
-    #progress-section {
-      display: none;
-    }
+    #progress-section { display: none; }
+    .progress-bar-wrap { background: #f1f2f3; border-radius: 99px; height: 10px; overflow: hidden; margin-bottom: 10px; }
+    .progress-bar { height: 100%; background: #008060; border-radius: 99px; width: 0%; transition: width .3s ease; }
+    .progress-text { font-size: 13px; color: #6d7175; margin-bottom: 12px; }
 
-    .progress-bar-wrap {
-      background: #f1f2f3;
-      border-radius: 99px;
-      height: 10px;
-      overflow: hidden;
-      margin-bottom: 10px;
-    }
-
-    .progress-bar {
-      height: 100%;
-      background: #008060;
-      border-radius: 99px;
-      width: 0%;
-      transition: width .3s ease;
-    }
-
-    .progress-text {
-      font-size: 13px;
-      color: #6d7175;
-      margin-bottom: 12px;
-    }
-
-    /* Log */
     #log {
       max-height: 260px;
       overflow-y: auto;
@@ -219,24 +377,11 @@
       padding: 12px;
       line-height: 1.7;
     }
+    .log-ok   { color: #008060; }
+    .log-err  { color: #d72c0d; }
+    .log-info { color: #005bd3; }
+    .log-warn { color: #b98900; }
 
-    .log-ok {
-      color: #008060;
-    }
-
-    .log-err {
-      color: #d72c0d;
-    }
-
-    .log-info {
-      color: #005bd3;
-    }
-
-    .log-warn {
-      color: #b98900;
-    }
-
-    /* Result banner */
     #result-banner {
       display: none;
       padding: 14px 18px;
@@ -245,188 +390,343 @@
       font-weight: 600;
       margin-top: 16px;
     }
-
-    #result-banner.success {
-      background: #d3f5e3;
-      color: #00622e;
-      border: 1px solid #95d0b0;
-    }
-
-    #result-banner.partial {
-      background: #fff3cd;
-      color: #856404;
-      border: 1px solid #ffc107;
-    }
-
-    #result-banner.fail {
-      background: #fce8e6;
-      color: #b81c0c;
-      border: 1px solid #f4b4af;
-    }
+    #result-banner.success { background: #d3f5e3; color: #00622e; border: 1px solid #95d0b0; }
+    #result-banner.partial { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+    #result-banner.fail    { background: #fce8e6; color: #b81c0c; border: 1px solid #f4b4af; }
 
     /* Preview table */
-    #preview-section {
-      display: none;
-    }
+    #preview-section { display: none; max-width: 100%; }
 
-    .preview-meta {
-      font-size: 13px;
-      color: #6d7175;
-      margin-bottom: 12px;
-    }
+    .preview-meta { font-size: 13px; color: #6d7175; margin-bottom: 12px; }
+    .preview-meta .skip-note { color: #b98900; font-weight: 600; }
 
-    .preview-meta .skip-note {
-      color: #b98900;
-      font-weight: 600;
-    }
+    .table-wrap { overflow-x: auto; }
 
-    .table-wrap {
-      overflow-x: auto;
-    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #f1f2f3; text-align: left; padding: 8px 10px; font-weight: 600; }
+    td { padding: 7px 10px; border-top: 1px solid #f1f2f3; }
+    tr:hover td { background: #f9fafb; }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
+    /* Placeholder views */
+    .placeholder-view {
+      max-width: 480px;
+      margin: 60px auto;
+      text-align: center;
     }
-
-    th {
+    .placeholder-view .ph-icon { font-size: 56px; margin-bottom: 16px; }
+    .placeholder-view h2 { font-size: 20px; font-weight: 700; color: #202223; margin-bottom: 8px; }
+    .placeholder-view p { font-size: 14px; color: #6d7175; line-height: 1.6; }
+    .placeholder-view .ph-badge {
+      display: inline-block;
+      margin-top: 20px;
       background: #f1f2f3;
-      text-align: left;
-      padding: 8px 10px;
+      border: 1px solid #e1e3e5;
+      color: #6d7175;
+      font-size: 12px;
       font-weight: 600;
+      padding: 6px 16px;
+      border-radius: 99px;
     }
 
-    td {
-      padding: 7px 10px;
-      border-top: 1px solid #f1f2f3;
-    }
-
-    tr:hover td {
-      background: #f9fafb;
+    /* Responsive */
+    @media (max-width: 700px) {
+      .sidebar { width: 200px; }
+      .main { margin-left: 200px; }
+      .page-content { padding: 16px; }
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <h1>&#128722; Shopify Middlware API's</h1>
-      <button class="btn-secondary" style="font-size:13px;padding:7px 14px;" onclick="logout()">&#128274;
-        Logout</button>
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">🛒</div>
+      <h2>Shopify Middleware</h2>
+      <p>Store integration hub</p>
     </div>
-    <p class="subtitle">Fetch products from your XML API and bulk-import new ones into Shopify</p>
 
-    <!-- Source API card -->
-    <div class="card">
-      <h2>Product Source API</h2>
-      <div class="field">
-        <label for="api-url">API URL (must return XML)</label>
-        <input type="text" id="api-url" placeholder="https://your-api.com/products.xml" autocomplete="off" />
-      </div>
-      <div class="field">
-        <label for="auth-token">Authorization Token <span style="color:#6d7175;font-weight:400">(Basic, base64
-            encoded)</span></label>
-        <input type="password" id="auth-token" placeholder="Leave blank if not required" autocomplete="off" />
-        <p class="hint">
-          <svg width="13" height="13" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M10 2a5 5 0 0 1 5 5v1h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v1h6V7a3 3 0 0 0-3-3zm0 7a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1z"
-              fill="#6d7175" />
-          </svg>
-          Encrypted in your browser with the server's public key before being sent. Never stored.
-        </p>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <div class="nav-item active" onclick="navigate('dashboard', this)">
+        <span class="nav-icon">🏠</span> Dashboard
       </div>
 
-      <!-- Optional SOAP filters -->
-      <div style="border-top:1px solid #e1e3e5;margin:16px 0 16px;"></div>
-      <p style="font-size:13px;font-weight:600;margin-bottom:12px;color:#202223;">Filters <span
-          style="font-weight:400;color:#6d7175">(optional — leave blank to fetch all)</span></p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="field" style="margin-bottom:0">
-          <label for="filter-sku">SKU (No)</label>
-          <input type="text" id="filter-sku" placeholder="e.g. ITEM001 or ITEM*" />
+      <div class="nav-section-label">Products</div>
+      <div class="nav-item" onclick="navigate('insert-product', this)">
+        <span class="nav-icon">📦</span> Insert Product
+      </div>
+      <div class="nav-item" onclick="navigate('update-product', this)">
+        <span class="nav-icon">✏️</span> Update Product
+      </div>
+
+      <div class="nav-section-label">Promotions</div>
+      <div class="nav-item" onclick="navigate('discounts', this)">
+        <span class="nav-icon">🏷️</span> Update Discounts
+      </div>
+
+      <div class="nav-section-label">Store</div>
+      <div class="nav-item" onclick="navigate('orders', this)">
+        <span class="nav-icon">📋</span> Orders
+      </div>
+      <div class="nav-item" onclick="navigate('inventory', this)">
+        <span class="nav-icon">📊</span> Inventory
+      </div>
+      <div class="nav-item" onclick="navigate('settings', this)">
+        <span class="nav-icon">⚙️</span> Settings
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="logout()">
+        <span>🔒</span> Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <div class="main">
+    <header class="topbar">
+      <span class="topbar-title" id="topbar-title">Dashboard</span>
+      <span class="topbar-meta" id="topbar-meta">Welcome back</span>
+    </header>
+
+    <div class="page-content">
+
+      <!-- Dashboard view -->
+      <div class="view active" id="view-dashboard">
+        <div class="page-header">
+          <h1>Dashboard</h1>
+          <p>Overview of your Shopify middleware operations</p>
         </div>
-        <div class="field" style="margin-bottom:0;position:relative;">
-          <label for="filter-season">Season Code <span style="color:#d72c0d">*</span></label>
-          <div style="display:flex;gap:6px;align-items:center;">
-            <input type="text" id="filter-season" placeholder="e.g. SS25 or AW*" style="flex:1" />
-            <button class="btn-browse" id="btn-browse-season" onclick="browseSeasons()" type="button">&#128269;
-              Browse</button>
+
+        <div class="stats-grid">
+          <div class="stat-card green">
+            <div class="stat-label">Products Imported</div>
+            <div class="stat-value" id="stat-imported">—</div>
+            <div class="stat-sub">all time via this tool</div>
           </div>
-          <div id="season-dropdown" style="display:none;"></div>
+          <div class="stat-card blue">
+            <div class="stat-label">Shopify Products</div>
+            <div class="stat-value" id="stat-shopify">—</div>
+            <div class="stat-sub">currently in store</div>
+          </div>
+          <div class="stat-card amber">
+            <div class="stat-label">Last Import</div>
+            <div class="stat-value" id="stat-last" style="font-size:16px;margin-top:4px;">—</div>
+            <div class="stat-sub">session activity</div>
+          </div>
+        </div>
+
+        <div class="page-header">
+          <h1 style="font-size:16px;">Quick Actions</h1>
+        </div>
+        <div class="quick-actions-grid">
+          <div class="action-card" onclick="navigate('insert-product', document.querySelector('[onclick*=insert-product]'))">
+            <div class="ac-icon">📦</div>
+            <h3>Insert Product</h3>
+            <p>Fetch products from your Dynamics NAV XML API and bulk-import them into Shopify.</p>
+          </div>
+          <div class="action-card" onclick="navigate('update-product', document.querySelector('[onclick*=update-product]'))">
+            <div class="ac-icon">✏️</div>
+            <h3>Update Product</h3>
+            <p>Update existing Shopify product details, pricing, or metadata in bulk.</p>
+            <span class="coming-soon-badge">Coming soon</span>
+          </div>
+          <div class="action-card" onclick="navigate('discounts', document.querySelector('[onclick*=discounts]'))">
+            <div class="ac-icon">🏷️</div>
+            <h3>Update Discounts</h3>
+            <p>Create and manage discount codes and automatic promotions across your store.</p>
+            <span class="coming-soon-badge">Coming soon</span>
+          </div>
+          <div class="action-card" onclick="navigate('inventory', document.querySelector('[onclick*=inventory]'))">
+            <div class="ac-icon">📊</div>
+            <h3>Inventory</h3>
+            <p>Sync and update stock levels from your XML source to Shopify inventory.</p>
+            <span class="coming-soon-badge">Coming soon</span>
+          </div>
         </div>
       </div>
-      <p style="font-size:12px;color:#6d7175;margin-top:6px;">Tip: use <code>*</code> as wildcard (e.g.
-        <code>SS*</code>) or <code>..</code> for ranges (e.g. <code>A..Z</code>). <strong>Season Code is
-          required</strong> to avoid timeout.
-      </p>
 
-      <div class="btn-row">
-        <button class="btn-preview" onclick="fetchAndPreview()" id="btn-preview">&#128269; Fetch &amp; Preview</button>
-        <button class="btn-primary" onclick="uploadProducts()" id="btn-upload" disabled>&#128640; Upload to
-          Shopify</button>
-      </div>
-    </div>
+      <!-- Insert Product view -->
+      <div class="view" id="view-insert-product">
+        <div class="page-header">
+          <h1>Insert Product</h1>
+          <p>Fetch products from your XML API and bulk-import new ones into Shopify</p>
+        </div>
 
-    <!-- Progress card -->
-    <div class="card" id="progress-section">
-      <h2>Upload Progress</h2>
-      <div class="progress-bar-wrap">
-        <div class="progress-bar" id="progress-bar"></div>
-      </div>
-      <p class="progress-text" id="progress-text">Starting…</p>
-      <div id="log"></div>
-      <div id="result-banner"></div>
-    </div>
+        <div class="card">
+          <h2>Product Source API</h2>
+          <div class="field">
+            <label for="api-url">API URL (must return XML)</label>
+            <input type="text" id="api-url" placeholder="https://your-api.com/products.xml" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="auth-token">Authorization Token <span style="color:#6d7175;font-weight:400">(Basic, base64 encoded)</span></label>
+            <input type="password" id="auth-token" placeholder="Leave blank if not required" autocomplete="off" />
+            <p class="hint">
+              <svg width="13" height="13" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 2a5 5 0 0 1 5 5v1h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v1h6V7a3 3 0 0 0-3-3zm0 7a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1z" fill="#6d7175"/>
+              </svg>
+              Encrypted in your browser with the server's public key before being sent. Never stored.
+            </p>
+          </div>
 
-    <!-- Preview card -->
-    <div class="card" id="preview-section">
-      <h2 id="preview-heading">New Products</h2>
-      <p class="preview-meta" id="preview-meta"></p>
-      <div class="table-wrap">
-        <table id="preview-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Title</th>
-              <th>Vendor</th>
-              <th>Type</th>
-              <th>SKU</th>
-              <th>Price</th>
-              <th>Stock</th>
-              <th>Tags</th>
-            </tr>
-          </thead>
-          <tbody id="preview-body"></tbody>
-        </table>
+          <div style="border-top:1px solid #e1e3e5;margin:16px 0 16px;"></div>
+          <p style="font-size:13px;font-weight:600;margin-bottom:12px;color:#202223;">Filters <span style="font-weight:400;color:#6d7175">(optional — leave blank to fetch all)</span></p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="field" style="margin-bottom:0">
+              <label for="filter-sku">SKU (No)</label>
+              <input type="text" id="filter-sku" placeholder="e.g. ITEM001 or ITEM*" />
+            </div>
+            <div class="field" style="margin-bottom:0;position:relative;">
+              <label for="filter-season">Season Code <span style="color:#d72c0d">*</span></label>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <input type="text" id="filter-season" placeholder="e.g. SS25 or AW*" style="flex:1" />
+                <button class="btn-browse" id="btn-browse-season" onclick="browseSeasons()" type="button">🔍 Browse</button>
+              </div>
+              <div id="season-dropdown" style="display:none;"></div>
+            </div>
+          </div>
+          <p style="font-size:12px;color:#6d7175;margin-top:6px;">Tip: use <code>*</code> as wildcard (e.g. <code>SS*</code>) or <code>..</code> for ranges (e.g. <code>A..Z</code>). <strong>Season Code is required</strong> to avoid timeout.</p>
+
+          <div class="btn-row">
+            <button class="btn-preview" onclick="fetchAndPreview()" id="btn-preview">🔍 Fetch &amp; Preview</button>
+            <button class="btn-primary" onclick="uploadProducts()" id="btn-upload" disabled>🚀 Upload to Shopify</button>
+          </div>
+        </div>
+
+        <!-- Progress card -->
+        <div class="card" id="progress-section">
+          <h2>Upload Progress</h2>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar" id="progress-bar"></div>
+          </div>
+          <p class="progress-text" id="progress-text">Starting…</p>
+          <div id="log"></div>
+          <div id="result-banner"></div>
+        </div>
+
+        <!-- Preview card -->
+        <div class="card" id="preview-section" style="max-width:100%">
+          <h2 id="preview-heading">New Products</h2>
+          <p class="preview-meta" id="preview-meta"></p>
+          <div class="table-wrap">
+            <table id="preview-table">
+              <thead>
+                <tr>
+                  <th>#</th><th>Title</th><th>Vendor</th><th>Type</th>
+                  <th>SKU</th><th>Price</th><th>Stock</th><th>Tags</th>
+                </tr>
+              </thead>
+              <tbody id="preview-body"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
+
+      <!-- Update Product view -->
+      <div class="view" id="view-update-product">
+        <div class="placeholder-view">
+          <div class="ph-icon">✏️</div>
+          <h2>Update Product</h2>
+          <p>Bulk-update existing Shopify product details, descriptions, pricing, and metadata from your XML source.</p>
+          <span class="ph-badge">Coming soon</span>
+        </div>
+      </div>
+
+      <!-- Discounts view -->
+      <div class="view" id="view-discounts">
+        <div class="placeholder-view">
+          <div class="ph-icon">🏷️</div>
+          <h2>Update Discounts</h2>
+          <p>Create, update, and manage discount codes and automatic promotions across your Shopify store.</p>
+          <span class="ph-badge">Coming soon</span>
+        </div>
+      </div>
+
+      <!-- Orders view -->
+      <div class="view" id="view-orders">
+        <div class="placeholder-view">
+          <div class="ph-icon">📋</div>
+          <h2>Orders</h2>
+          <p>View and manage orders from your Shopify store, including fulfilment status and customer details.</p>
+          <span class="ph-badge">Coming soon</span>
+        </div>
+      </div>
+
+      <!-- Inventory view -->
+      <div class="view" id="view-inventory">
+        <div class="placeholder-view">
+          <div class="ph-icon">📊</div>
+          <h2>Inventory</h2>
+          <p>Sync stock levels from your Dynamics NAV XML API directly into Shopify inventory locations.</p>
+          <span class="ph-badge">Coming soon</span>
+        </div>
+      </div>
+
+      <!-- Settings view -->
+      <div class="view" id="view-settings">
+        <div class="placeholder-view">
+          <div class="ph-icon">⚙️</div>
+          <h2>Settings</h2>
+          <p>Configure your Shopify store connection, API credentials, and middleware preferences.</p>
+          <span class="ph-badge">Coming soon</span>
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+  </div><!-- /main -->
 
   <script>
     const $ = id => document.getElementById(id);
     let fetchedProducts = [];
+    let sessionImportCount = 0;
 
     fetch('/auth/me').then(r => { if (!r.ok) window.location.href = '/login'; });
 
+    // ── Navigation ────────────────────────────────────────────────────────────────
+    const viewTitles = {
+      'dashboard':      'Dashboard',
+      'insert-product': 'Insert Product',
+      'update-product': 'Update Product',
+      'discounts':      'Update Discounts',
+      'orders':         'Orders',
+      'inventory':      'Inventory',
+      'settings':       'Settings',
+    };
+
+    function navigate(viewId, navEl) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      const view = $('view-' + viewId);
+      if (view) view.classList.add('active');
+      if (navEl) navEl.classList.add('active');
+      $('topbar-title').textContent = viewTitles[viewId] || viewId;
+    }
+
+    // ── Dashboard stats ───────────────────────────────────────────────────────────
+    function updateDashboardStats(shopifyCount) {
+      if (shopifyCount != null) $('stat-shopify').textContent = shopifyCount.toLocaleString();
+      if (sessionImportCount > 0) $('stat-imported').textContent = sessionImportCount.toLocaleString();
+    }
+
+    fetch('/api/shopify-skus').then(r => r.json()).then(d => {
+      if (d.skus) updateDashboardStats(d.skus.length);
+    }).catch(() => {});
+
     // ── RSA-OAEP encryption ───────────────────────────────────────────────────────
-    // The server's public key is fetched once and cached for the session.
-    // The auth token is encrypted client-side so only the server (holding the
-    // private key) can read it. It is never stored in localStorage or cookies.
     let _cryptoKey = null;
 
     async function loadPublicKey() {
       const res = await fetch('/api/pubkey');
       if (!res.ok) throw new Error('Could not load encryption key from server');
       const { publicKey } = await res.json();
-
-      // Strip PEM headers and decode base64 → ArrayBuffer
       const b64 = publicKey.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
       const binary = atob(b64);
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
       _cryptoKey = await window.crypto.subtle.importKey(
         'spki', bytes.buffer,
         { name: 'RSA-OAEP', hash: 'SHA-256' },
@@ -437,14 +737,11 @@
     async function encryptToken(plainText) {
       if (!_cryptoKey) await loadPublicKey();
       const encoded = new TextEncoder().encode(plainText);
-      const encrypted = await window.crypto.subtle.encrypt(
-        { name: 'RSA-OAEP' }, _cryptoKey, encoded
-      );
+      const encrypted = await window.crypto.subtle.encrypt({ name: 'RSA-OAEP' }, _cryptoKey, encoded);
       return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
     }
 
-    // Pre-load the key so it's ready when the user clicks Fetch
-    loadPublicKey().catch(() => { });
+    loadPublicKey().catch(() => {});
 
     async function logout() {
       await fetch('/auth/logout', { method: 'POST' });
@@ -505,16 +802,17 @@
         seasons.forEach(s => {
           const div = document.createElement('div');
           div.textContent = s;
-          div.onclick = () => {
-            $('filter-season').value = s;
-            dd.style.display = 'none';
-          };
+          div.onclick = () => { $('filter-season').value = s; dd.style.display = 'none'; };
           dd.appendChild(div);
         });
         dd.style.display = 'block';
 
-        // Close on outside click
-        const close = (e) => { if (!dd.contains(e.target) && e.target.id !== 'btn-browse-season') { dd.style.display = 'none'; document.removeEventListener('click', close); } };
+        const close = (e) => {
+          if (!dd.contains(e.target) && e.target.id !== 'btn-browse-season') {
+            dd.style.display = 'none';
+            document.removeEventListener('click', close);
+          }
+        };
         setTimeout(() => document.addEventListener('click', close), 0);
       } catch (e) {
         _cryptoKey = null;
@@ -542,18 +840,15 @@
       fetchedProducts = [];
 
       try {
-        // Encrypt the token in the browser before sending — never sent in plain text
         const rawToken = $('auth-token').value.trim();
         const encryptedToken = rawToken ? await encryptToken(rawToken) : '';
 
-        // Collect optional filters (empty string = omit filter)
         const filters = [];
         const skuFilter = $('filter-sku').value.trim();
         const seasonFilter = $('filter-season').value.trim();
         if (skuFilter) filters.push({ field: 'No', criteria: skuFilter });
         if (seasonFilter) filters.push({ field: 'Season_Code', criteria: seasonFilter });
 
-        // Fire both requests in parallel — NAV fetch and Shopify SKU list
         $('btn-preview').textContent = '⏳ Fetching (this may take a minute)…';
         const [navRes, skuRes] = await Promise.all([
           fetch('/api/fetch-from-url', {
@@ -573,18 +868,16 @@
           const detail = navData.detail ? `\n\nUpstream response:\n${navData.detail}` : '';
           throw new Error(msg + detail);
         }
-        // Shopify SKU check is best-effort — if Shopify credentials are invalid,
-        // still show NAV products but warn that duplicate check was skipped.
+
         let existingSkus = new Set();
         let skuCheckFailed = false;
         if (!skuRes.ok) {
           skuCheckFailed = true;
-          console.warn('Shopify SKU check failed:', skuData.error);
         } else {
           existingSkus = new Set(skuData.skus || []);
+          updateDashboardStats(skuData.skus.length);
         }
 
-        // Filter client-side — no round-trip needed
         const allProducts = navData.products || [];
         const newProducts = [];
         const skipped = [];
@@ -602,21 +895,17 @@
           const v = p.variants?.[0] || {};
           const tr = document.createElement('tr');
           tr.innerHTML = `<td>${i + 1}</td><td><strong>${esc(p.title)}</strong></td>
-          <td>${esc(p.vendor)}</td><td>${esc(p.product_type)}</td>
-          <td>${esc(v.sku)}</td><td>${esc(v.price)}</td>
-          <td>${esc(String(v.inventory_quantity ?? ''))}</td><td>${esc(p.tags)}</td>`;
+            <td>${esc(p.vendor)}</td><td>${esc(p.product_type)}</td>
+            <td>${esc(v.sku)}</td><td>${esc(v.price)}</td>
+            <td>${esc(String(v.inventory_quantity ?? ''))}</td><td>${esc(p.tags)}</td>`;
           tbody.appendChild(tr);
         });
 
         $('preview-heading').textContent = `New Products (${fetchedProducts.length})`;
 
         let metaText = `${allProducts.length} product(s) fetched from API.`;
-        if (skipped.length > 0) {
-          metaText += ` <span class="skip-note">${skipped.length} already in Shopify — skipped.</span>`;
-        }
-        if (skuCheckFailed) {
-          metaText += ` <span style="color:#d72c0d;font-weight:600">⚠ Shopify duplicate check failed (invalid credentials) — showing all products. Fix Shopify token in Vercel env vars.</span>`;
-        }
+        if (skipped.length > 0) metaText += ` <span class="skip-note">${skipped.length} already in Shopify — skipped.</span>`;
+        if (skuCheckFailed) metaText += ` <span style="color:#d72c0d;font-weight:600">⚠ Shopify duplicate check failed — showing all products.</span>`;
         $('preview-meta').innerHTML = metaText;
         $('preview-section').style.display = 'block';
 
@@ -627,7 +916,6 @@
           $('btn-upload').disabled = false;
         }
       } catch (e) {
-        // Re-fetch the public key in case of a server cold-start key rotation
         _cryptoKey = null;
         alert('Error: ' + e.message);
       } finally {
@@ -636,7 +924,7 @@
       }
     }
 
-    // ── Upload (batched JSON POST → /api/upload-products) ─────────────────────────
+    // ── Upload ────────────────────────────────────────────────────────────────────
     const BATCH_SIZE = 8;
 
     async function uploadProducts() {
@@ -654,9 +942,7 @@
       log(`Uploading ${fetchedProducts.length} product(s) in batches of ${BATCH_SIZE}…`, 'log-info');
 
       const batches = [];
-      for (let i = 0; i < fetchedProducts.length; i += BATCH_SIZE) {
-        batches.push(fetchedProducts.slice(i, i + BATCH_SIZE));
-      }
+      for (let i = 0; i < fetchedProducts.length; i += BATCH_SIZE) batches.push(fetchedProducts.slice(i, i + BATCH_SIZE));
 
       let totalCreated = 0, totalFailed = 0;
 
@@ -679,8 +965,7 @@
 
           totalCreated += data.created || 0;
           totalFailed += data.failed || 0;
-          (data.errors || []).forEach(e =>
-            log(`✗ [${start + e.index}] "${e.title}" — ${e.error}`, 'log-err'));
+          (data.errors || []).forEach(e => log(`✗ [${start + e.index}] "${e.title}" — ${e.error}`, 'log-err'));
 
           const pct = Math.round(((b + 1) / batches.length) * 100);
           $('progress-bar').style.width = pct + '%';
@@ -706,7 +991,13 @@
         log(`Done — all ${totalFailed} failed`, 'log-err');
       }
 
-      $('btn-upload').disabled = false; $('btn-preview').disabled = false;
+      sessionImportCount += totalCreated;
+      if (sessionImportCount > 0) $('stat-imported').textContent = sessionImportCount.toLocaleString();
+      const now = new Date();
+      $('stat-last').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      $('btn-upload').disabled = false;
+      $('btn-preview').disabled = false;
     }
   </script>
 </body>
