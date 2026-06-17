@@ -1,11 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shopify Product Uploader</title>
+  <title>Shopify Middlware API's</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -15,7 +22,10 @@
       padding: 32px 16px;
     }
 
-    .container { max-width: 760px; margin: 0 auto; }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
 
     h1 {
       font-size: 24px;
@@ -23,7 +33,12 @@
       margin-bottom: 4px;
       color: #008060;
     }
-    .subtitle { color: #6d7175; font-size: 14px; margin-bottom: 28px; }
+
+    .subtitle {
+      color: #6d7175;
+      font-size: 14px;
+      margin-bottom: 28px;
+    }
 
     .card {
       background: #fff;
@@ -33,72 +48,193 @@
       margin-bottom: 20px;
     }
 
-    .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #202223; }
-
-    .field { margin-bottom: 16px; }
-    .field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
-    .field input {
-      width: 100%; padding: 8px 12px; border: 1px solid #c9cccf; border-radius: 6px;
-      font-size: 14px; outline: none; transition: border-color .15s;
+    .card h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #202223;
     }
-    .field input:focus { border-color: #008060; box-shadow: 0 0 0 2px #00806022; }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #c9cccf;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s;
+    }
+
+    .field input:focus {
+      border-color: #008060;
+      box-shadow: 0 0 0 2px #00806022;
+    }
 
     .field .hint {
-      margin-top: 5px; font-size: 12px; color: #6d7175;
-      display: flex; align-items: center; gap: 5px;
+      margin-top: 5px;
+      font-size: 12px;
+      color: #6d7175;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
-    .field .hint svg { flex-shrink: 0; }
+
+    .field .hint svg {
+      flex-shrink: 0;
+    }
 
     /* Buttons */
-    .btn-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
-    button {
-      padding: 10px 20px; border: none; border-radius: 6px;
-      font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s;
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
     }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    .btn-primary { background: #008060; color: #fff; }
-    .btn-primary:not(:disabled):hover { background: #006e52; }
-    .btn-secondary { background: #f1f2f3; color: #202223; border: 1px solid #c9cccf; }
-    .btn-secondary:not(:disabled):hover { background: #e4e5e7; }
-    .btn-preview { background: #005bd3; color: #fff; }
-    .btn-preview:not(:disabled):hover { background: #0047a7; }
-    .btn-browse { background: #f1f2f3; color: #202223; border: 1px solid #c9cccf; padding: 6px 12px; font-size: 12px; }
-    .btn-browse:not(:disabled):hover { background: #e4e5e7; }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #008060;
+      color: #fff;
+    }
+
+    .btn-primary:not(:disabled):hover {
+      background: #006e52;
+    }
+
+    .btn-secondary {
+      background: #f1f2f3;
+      color: #202223;
+      border: 1px solid #c9cccf;
+    }
+
+    .btn-secondary:not(:disabled):hover {
+      background: #e4e5e7;
+    }
+
+    .btn-preview {
+      background: #005bd3;
+      color: #fff;
+    }
+
+    .btn-preview:not(:disabled):hover {
+      background: #0047a7;
+    }
+
+    .btn-browse {
+      background: #f1f2f3;
+      color: #202223;
+      border: 1px solid #c9cccf;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .btn-browse:not(:disabled):hover {
+      background: #e4e5e7;
+    }
 
     /* Season code dropdown */
     #season-dropdown {
-      position: absolute; z-index: 100; background: #fff;
-      border: 1px solid #c9cccf; border-radius: 6px;
-      box-shadow: 0 4px 12px rgba(0,0,0,.12);
-      max-height: 220px; overflow-y: auto; min-width: 200px;
+      position: absolute;
+      z-index: 100;
+      background: #fff;
+      border: 1px solid #c9cccf;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .12);
+      max-height: 220px;
+      overflow-y: auto;
+      min-width: 200px;
     }
+
     #season-dropdown div {
-      padding: 8px 14px; font-size: 13px; cursor: pointer;
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
     }
-    #season-dropdown div:hover { background: #f1f2f3; }
+
+    #season-dropdown div:hover {
+      background: #f1f2f3;
+    }
 
     /* Progress */
-    #progress-section { display: none; }
+    #progress-section {
+      display: none;
+    }
+
     .progress-bar-wrap {
-      background: #f1f2f3; border-radius: 99px; height: 10px; overflow: hidden; margin-bottom: 10px;
+      background: #f1f2f3;
+      border-radius: 99px;
+      height: 10px;
+      overflow: hidden;
+      margin-bottom: 10px;
     }
+
     .progress-bar {
-      height: 100%; background: #008060; border-radius: 99px;
-      width: 0%; transition: width .3s ease;
+      height: 100%;
+      background: #008060;
+      border-radius: 99px;
+      width: 0%;
+      transition: width .3s ease;
     }
-    .progress-text { font-size: 13px; color: #6d7175; margin-bottom: 12px; }
+
+    .progress-text {
+      font-size: 13px;
+      color: #6d7175;
+      margin-bottom: 12px;
+    }
 
     /* Log */
     #log {
-      max-height: 260px; overflow-y: auto;
-      font-size: 12.5px; font-family: 'Courier New', monospace;
-      background: #f9fafb; border: 1px solid #e1e3e5; border-radius: 8px;
-      padding: 12px; line-height: 1.7;
+      max-height: 260px;
+      overflow-y: auto;
+      font-size: 12.5px;
+      font-family: 'Courier New', monospace;
+      background: #f9fafb;
+      border: 1px solid #e1e3e5;
+      border-radius: 8px;
+      padding: 12px;
+      line-height: 1.7;
     }
-    .log-ok { color: #008060; }
-    .log-err { color: #d72c0d; }
-    .log-info { color: #005bd3; }
-    .log-warn { color: #b98900; }
+
+    .log-ok {
+      color: #008060;
+    }
+
+    .log-err {
+      color: #d72c0d;
+    }
+
+    .log-info {
+      color: #005bd3;
+    }
+
+    .log-warn {
+      color: #b98900;
+    }
 
     /* Result banner */
     #result-banner {
@@ -109,398 +245,470 @@
       font-weight: 600;
       margin-top: 16px;
     }
-    #result-banner.success { background: #d3f5e3; color: #00622e; border: 1px solid #95d0b0; }
-    #result-banner.partial { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
-    #result-banner.fail { background: #fce8e6; color: #b81c0c; border: 1px solid #f4b4af; }
+
+    #result-banner.success {
+      background: #d3f5e3;
+      color: #00622e;
+      border: 1px solid #95d0b0;
+    }
+
+    #result-banner.partial {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffc107;
+    }
+
+    #result-banner.fail {
+      background: #fce8e6;
+      color: #b81c0c;
+      border: 1px solid #f4b4af;
+    }
 
     /* Preview table */
-    #preview-section { display: none; }
-    .preview-meta { font-size: 13px; color: #6d7175; margin-bottom: 12px; }
-    .preview-meta .skip-note { color: #b98900; font-weight: 600; }
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { background: #f1f2f3; text-align: left; padding: 8px 10px; font-weight: 600; }
-    td { padding: 7px 10px; border-top: 1px solid #f1f2f3; }
-    tr:hover td { background: #f9fafb; }
+    #preview-section {
+      display: none;
+    }
+
+    .preview-meta {
+      font-size: 13px;
+      color: #6d7175;
+      margin-bottom: 12px;
+    }
+
+    .preview-meta .skip-note {
+      color: #b98900;
+      font-weight: 600;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      background: #f1f2f3;
+      text-align: left;
+      padding: 8px 10px;
+      font-weight: 600;
+    }
+
+    td {
+      padding: 7px 10px;
+      border-top: 1px solid #f1f2f3;
+    }
+
+    tr:hover td {
+      background: #f9fafb;
+    }
   </style>
 </head>
+
 <body>
-<div class="container">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-    <h1>&#128722; Shopify Product Uploader</h1>
-    <button class="btn-secondary" style="font-size:13px;padding:7px 14px;" onclick="logout()">&#128274; Logout</button>
-  </div>
-  <p class="subtitle">Fetch products from your XML API and bulk-import new ones into Shopify</p>
-
-  <!-- Source API card -->
-  <div class="card">
-    <h2>Product Source API</h2>
-    <div class="field">
-      <label for="api-url">API URL (must return XML)</label>
-      <input type="text" id="api-url" placeholder="https://your-api.com/products.xml" autocomplete="off" />
+  <div class="container">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <h1>&#128722; Shopify Middlware API's</h1>
+      <button class="btn-secondary" style="font-size:13px;padding:7px 14px;" onclick="logout()">&#128274;
+        Logout</button>
     </div>
-    <div class="field">
-      <label for="auth-token">Authorization Token <span style="color:#6d7175;font-weight:400">(Basic, base64 encoded)</span></label>
-      <input type="password" id="auth-token" placeholder="Leave blank if not required" autocomplete="off" />
-      <p class="hint">
-        <svg width="13" height="13" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M10 2a5 5 0 0 1 5 5v1h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v1h6V7a3 3 0 0 0-3-3zm0 7a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1z" fill="#6d7175"/>
-        </svg>
-        Encrypted in your browser with the server's public key before being sent. Never stored.
-      </p>
-    </div>
+    <p class="subtitle">Fetch products from your XML API and bulk-import new ones into Shopify</p>
 
-    <!-- Optional SOAP filters -->
-    <div style="border-top:1px solid #e1e3e5;margin:16px 0 16px;"></div>
-    <p style="font-size:13px;font-weight:600;margin-bottom:12px;color:#202223;">Filters <span style="font-weight:400;color:#6d7175">(optional — leave blank to fetch all)</span></p>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div class="field" style="margin-bottom:0">
-        <label for="filter-sku">SKU (No)</label>
-        <input type="text" id="filter-sku" placeholder="e.g. ITEM001 or ITEM*" />
+    <!-- Source API card -->
+    <div class="card">
+      <h2>Product Source API</h2>
+      <div class="field">
+        <label for="api-url">API URL (must return XML)</label>
+        <input type="text" id="api-url" placeholder="https://your-api.com/products.xml" autocomplete="off" />
       </div>
-      <div class="field" style="margin-bottom:0;position:relative;">
-        <label for="filter-season">Season Code <span style="color:#d72c0d">*</span></label>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <input type="text" id="filter-season" placeholder="e.g. SS25 or AW*" style="flex:1" />
-          <button class="btn-browse" id="btn-browse-season" onclick="browseSeasons()" type="button">&#128269; Browse</button>
+      <div class="field">
+        <label for="auth-token">Authorization Token <span style="color:#6d7175;font-weight:400">(Basic, base64
+            encoded)</span></label>
+        <input type="password" id="auth-token" placeholder="Leave blank if not required" autocomplete="off" />
+        <p class="hint">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M10 2a5 5 0 0 1 5 5v1h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v1h6V7a3 3 0 0 0-3-3zm0 7a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1z"
+              fill="#6d7175" />
+          </svg>
+          Encrypted in your browser with the server's public key before being sent. Never stored.
+        </p>
+      </div>
+
+      <!-- Optional SOAP filters -->
+      <div style="border-top:1px solid #e1e3e5;margin:16px 0 16px;"></div>
+      <p style="font-size:13px;font-weight:600;margin-bottom:12px;color:#202223;">Filters <span
+          style="font-weight:400;color:#6d7175">(optional — leave blank to fetch all)</span></p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="field" style="margin-bottom:0">
+          <label for="filter-sku">SKU (No)</label>
+          <input type="text" id="filter-sku" placeholder="e.g. ITEM001 or ITEM*" />
         </div>
-        <div id="season-dropdown" style="display:none;"></div>
+        <div class="field" style="margin-bottom:0;position:relative;">
+          <label for="filter-season">Season Code <span style="color:#d72c0d">*</span></label>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="text" id="filter-season" placeholder="e.g. SS25 or AW*" style="flex:1" />
+            <button class="btn-browse" id="btn-browse-season" onclick="browseSeasons()" type="button">&#128269;
+              Browse</button>
+          </div>
+          <div id="season-dropdown" style="display:none;"></div>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#6d7175;margin-top:6px;">Tip: use <code>*</code> as wildcard (e.g.
+        <code>SS*</code>) or <code>..</code> for ranges (e.g. <code>A..Z</code>). <strong>Season Code is
+          required</strong> to avoid timeout.
+      </p>
+
+      <div class="btn-row">
+        <button class="btn-preview" onclick="fetchAndPreview()" id="btn-preview">&#128269; Fetch &amp; Preview</button>
+        <button class="btn-primary" onclick="uploadProducts()" id="btn-upload" disabled>&#128640; Upload to
+          Shopify</button>
       </div>
     </div>
-    <p style="font-size:12px;color:#6d7175;margin-top:6px;">Tip: use <code>*</code> as wildcard (e.g. <code>SS*</code>) or <code>..</code> for ranges (e.g. <code>A..Z</code>). <strong>Season Code is required</strong> to avoid timeout.</p>
 
-    <div class="btn-row">
-      <button class="btn-preview" onclick="fetchAndPreview()" id="btn-preview">&#128269; Fetch &amp; Preview</button>
-      <button class="btn-primary" onclick="uploadProducts()" id="btn-upload" disabled>&#128640; Upload to Shopify</button>
+    <!-- Progress card -->
+    <div class="card" id="progress-section">
+      <h2>Upload Progress</h2>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <p class="progress-text" id="progress-text">Starting…</p>
+      <div id="log"></div>
+      <div id="result-banner"></div>
+    </div>
+
+    <!-- Preview card -->
+    <div class="card" id="preview-section">
+      <h2 id="preview-heading">New Products</h2>
+      <p class="preview-meta" id="preview-meta"></p>
+      <div class="table-wrap">
+        <table id="preview-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Title</th>
+              <th>Vendor</th>
+              <th>Type</th>
+              <th>SKU</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Tags</th>
+            </tr>
+          </thead>
+          <tbody id="preview-body"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
-  <!-- Progress card -->
-  <div class="card" id="progress-section">
-    <h2>Upload Progress</h2>
-    <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
-    <p class="progress-text" id="progress-text">Starting…</p>
-    <div id="log"></div>
-    <div id="result-banner"></div>
-  </div>
+  <script>
+    const $ = id => document.getElementById(id);
+    let fetchedProducts = [];
 
-  <!-- Preview card -->
-  <div class="card" id="preview-section">
-    <h2 id="preview-heading">New Products</h2>
-    <p class="preview-meta" id="preview-meta"></p>
-    <div class="table-wrap">
-      <table id="preview-table">
-        <thead><tr><th>#</th><th>Title</th><th>Vendor</th><th>Type</th><th>SKU</th><th>Price</th><th>Stock</th><th>Tags</th></tr></thead>
-        <tbody id="preview-body"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
+    fetch('/auth/me').then(r => { if (!r.ok) window.location.href = '/login'; });
 
-<script>
-  const $ = id => document.getElementById(id);
-  let fetchedProducts = [];
+    // ── RSA-OAEP encryption ───────────────────────────────────────────────────────
+    // The server's public key is fetched once and cached for the session.
+    // The auth token is encrypted client-side so only the server (holding the
+    // private key) can read it. It is never stored in localStorage or cookies.
+    let _cryptoKey = null;
 
-  fetch('/auth/me').then(r => { if (!r.ok) window.location.href = '/login'; });
+    async function loadPublicKey() {
+      const res = await fetch('/api/pubkey');
+      if (!res.ok) throw new Error('Could not load encryption key from server');
+      const { publicKey } = await res.json();
 
-  // ── RSA-OAEP encryption ───────────────────────────────────────────────────────
-  // The server's public key is fetched once and cached for the session.
-  // The auth token is encrypted client-side so only the server (holding the
-  // private key) can read it. It is never stored in localStorage or cookies.
-  let _cryptoKey = null;
+      // Strip PEM headers and decode base64 → ArrayBuffer
+      const b64 = publicKey.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
+      const binary = atob(b64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
-  async function loadPublicKey() {
-    const res = await fetch('/api/pubkey');
-    if (!res.ok) throw new Error('Could not load encryption key from server');
-    const { publicKey } = await res.json();
-
-    // Strip PEM headers and decode base64 → ArrayBuffer
-    const b64 = publicKey.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
-    const binary = atob(b64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
-    _cryptoKey = await window.crypto.subtle.importKey(
-      'spki', bytes.buffer,
-      { name: 'RSA-OAEP', hash: 'SHA-256' },
-      false, ['encrypt']
-    );
-  }
-
-  async function encryptToken(plainText) {
-    if (!_cryptoKey) await loadPublicKey();
-    const encoded = new TextEncoder().encode(plainText);
-    const encrypted = await window.crypto.subtle.encrypt(
-      { name: 'RSA-OAEP' }, _cryptoKey, encoded
-    );
-    return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
-  }
-
-  // Pre-load the key so it's ready when the user clicks Fetch
-  loadPublicKey().catch(() => {});
-
-  async function logout() {
-    await fetch('/auth/logout', { method: 'POST' });
-    window.location.href = '/login';
-  }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────────
-  function esc(str) {
-    return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  function log(msg, cls = 'log-info') {
-    const el = $('log');
-    const line = document.createElement('div');
-    line.className = cls;
-    line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-    el.appendChild(line);
-    el.scrollTop = el.scrollHeight;
-  }
-
-  function showBanner(cls, text) {
-    const b = $('result-banner');
-    b.style.display = 'block'; b.className = cls; b.textContent = text;
-  }
-
-  async function safeJson(res) {
-    const text = await res.text();
-    try { return JSON.parse(text); }
-    catch { throw new Error(`Server error (${res.status}): ${text.slice(0, 200)}`); }
-  }
-
-  // ── Browse Season Codes ───────────────────────────────────────────────────────
-  async function browseSeasons() {
-    const url = $('api-url').value.trim();
-    if (!url) { alert('Please enter an API URL first.'); return; }
-
-    const btn = $('btn-browse-season');
-    btn.disabled = true;
-    btn.textContent = '⏳ Loading…';
-
-    try {
-      const rawToken = $('auth-token').value.trim();
-      const encryptedToken = rawToken ? await encryptToken(rawToken) : '';
-
-      const res = await fetch('/api/browse-seasons', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, encryptedToken }),
-      });
-      const data = await safeJson(res);
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-
-      const seasons = data.seasons || [];
-      if (seasons.length === 0) { alert('No Season Codes found in the sample records.'); return; }
-
-      const dd = $('season-dropdown');
-      dd.innerHTML = '';
-      seasons.forEach(s => {
-        const div = document.createElement('div');
-        div.textContent = s;
-        div.onclick = () => {
-          $('filter-season').value = s;
-          dd.style.display = 'none';
-        };
-        dd.appendChild(div);
-      });
-      dd.style.display = 'block';
-
-      // Close on outside click
-      const close = (e) => { if (!dd.contains(e.target) && e.target.id !== 'btn-browse-season') { dd.style.display = 'none'; document.removeEventListener('click', close); } };
-      setTimeout(() => document.addEventListener('click', close), 0);
-    } catch (e) {
-      _cryptoKey = null;
-      alert('Error browsing seasons: ' + e.message);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = '🔍 Browse';
-    }
-  }
-
-  // ── Fetch & Preview ───────────────────────────────────────────────────────────
-  async function fetchAndPreview() {
-    const url = $('api-url').value.trim();
-    if (!url) { alert('Please enter an API URL.'); return; }
-    if (!$('filter-season').value.trim()) {
-      alert('Please enter a Season Code filter.\n\nFetching all products at once will timeout on the server. Enter a season (e.g. SS25) to limit the results.');
-      $('filter-season').focus();
-      return;
+      _cryptoKey = await window.crypto.subtle.importKey(
+        'spki', bytes.buffer,
+        { name: 'RSA-OAEP', hash: 'SHA-256' },
+        false, ['encrypt']
+      );
     }
 
-    $('btn-preview').disabled = true;
-    $('btn-preview').textContent = '⏳ Fetching…';
-    $('btn-upload').disabled = true;
-    $('preview-section').style.display = 'none';
-    fetchedProducts = [];
-
-    try {
-      // Encrypt the token in the browser before sending — never sent in plain text
-      const rawToken = $('auth-token').value.trim();
-      const encryptedToken = rawToken ? await encryptToken(rawToken) : '';
-
-      // Collect optional filters (empty string = omit filter)
-      const filters = [];
-      const skuFilter = $('filter-sku').value.trim();
-      const seasonFilter = $('filter-season').value.trim();
-      if (skuFilter)    filters.push({ field: 'No',          criteria: skuFilter });
-      if (seasonFilter) filters.push({ field: 'Season_Code', criteria: seasonFilter });
-
-      // Fire both requests in parallel — NAV fetch and Shopify SKU list
-      $('btn-preview').textContent = '⏳ Fetching (this may take a minute)…';
-      const [navRes, skuRes] = await Promise.all([
-        fetch('/api/fetch-from-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url, encryptedToken, filters }),
-        }),
-        fetch('/api/shopify-skus'),
-      ]);
-
-      if (navRes.status === 401) { window.location.href = '/login'; return; }
-
-      const [navData, skuData] = await Promise.all([safeJson(navRes), safeJson(skuRes)]);
-
-      if (!navRes.ok) {
-        const msg = navData.error || `HTTP ${navRes.status}`;
-        const detail = navData.detail ? `\n\nUpstream response:\n${navData.detail}` : '';
-        throw new Error(msg + detail);
-      }
-      // Shopify SKU check is best-effort — if Shopify credentials are invalid,
-      // still show NAV products but warn that duplicate check was skipped.
-      let existingSkus = new Set();
-      let skuCheckFailed = false;
-      if (!skuRes.ok) {
-        skuCheckFailed = true;
-        console.warn('Shopify SKU check failed:', skuData.error);
-      } else {
-        existingSkus = new Set(skuData.skus || []);
-      }
-
-      // Filter client-side — no round-trip needed
-      const allProducts = navData.products || [];
-      const newProducts = [];
-      const skipped = [];
-      for (const p of allProducts) {
-        const sku = p.variants?.[0]?.sku?.trim();
-        if (sku && existingSkus.has(sku)) skipped.push({ title: p.title, sku });
-        else newProducts.push(p);
-      }
-
-      fetchedProducts = newProducts;
-
-      const tbody = $('preview-body');
-      tbody.innerHTML = '';
-      fetchedProducts.forEach((p, i) => {
-        const v = p.variants?.[0] || {};
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${i+1}</td><td><strong>${esc(p.title)}</strong></td>
-          <td>${esc(p.vendor)}</td><td>${esc(p.product_type)}</td>
-          <td>${esc(v.sku)}</td><td>${esc(v.price)}</td>
-          <td>${esc(String(v.inventory_quantity ?? ''))}</td><td>${esc(p.tags)}</td>`;
-        tbody.appendChild(tr);
-      });
-
-      $('preview-heading').textContent = `New Products (${fetchedProducts.length})`;
-
-      let metaText = `${allProducts.length} product(s) fetched from API.`;
-      if (skipped.length > 0) {
-        metaText += ` <span class="skip-note">${skipped.length} already in Shopify — skipped.</span>`;
-      }
-      if (skuCheckFailed) {
-        metaText += ` <span style="color:#d72c0d;font-weight:600">⚠ Shopify duplicate check failed (invalid credentials) — showing all products. Fix Shopify token in Vercel env vars.</span>`;
-      }
-      $('preview-meta').innerHTML = metaText;
-      $('preview-section').style.display = 'block';
-
-      if (fetchedProducts.length === 0) {
-        $('btn-upload').disabled = true;
-        if (skipped.length > 0) alert('All products from the API already exist in Shopify. Nothing to upload.');
-      } else {
-        $('btn-upload').disabled = false;
-      }
-    } catch (e) {
-      // Re-fetch the public key in case of a server cold-start key rotation
-      _cryptoKey = null;
-      alert('Error: ' + e.message);
-    } finally {
-      $('btn-preview').disabled = false;
-      $('btn-preview').textContent = '🔍 Fetch & Preview';
-    }
-  }
-
-  // ── Upload (batched JSON POST → /api/upload-products) ─────────────────────────
-  const BATCH_SIZE = 8;
-
-  async function uploadProducts() {
-    if (!fetchedProducts.length) return;
-    if (!confirm(`Upload ${fetchedProducts.length} new product(s) to Shopify?`)) return;
-
-    $('btn-upload').disabled = true;
-    $('btn-preview').disabled = true;
-    $('progress-section').style.display = 'block';
-    $('result-banner').style.display = 'none';
-    $('log').innerHTML = '';
-    $('progress-bar').style.width = '0%';
-    $('progress-text').textContent = 'Starting upload…';
-
-    log(`Uploading ${fetchedProducts.length} product(s) in batches of ${BATCH_SIZE}…`, 'log-info');
-
-    const batches = [];
-    for (let i = 0; i < fetchedProducts.length; i += BATCH_SIZE) {
-      batches.push(fetchedProducts.slice(i, i + BATCH_SIZE));
+    async function encryptToken(plainText) {
+      if (!_cryptoKey) await loadPublicKey();
+      const encoded = new TextEncoder().encode(plainText);
+      const encrypted = await window.crypto.subtle.encrypt(
+        { name: 'RSA-OAEP' }, _cryptoKey, encoded
+      );
+      return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
     }
 
-    let totalCreated = 0, totalFailed = 0;
+    // Pre-load the key so it's ready when the user clicks Fetch
+    loadPublicKey().catch(() => { });
 
-    for (let b = 0; b < batches.length; b++) {
-      const batch = batches[b];
-      const start = b * BATCH_SIZE + 1;
-      const end   = Math.min(start + batch.length - 1, fetchedProducts.length);
-      $('progress-text').textContent = `Batch ${b+1}/${batches.length} — products ${start}–${end}…`;
+    async function logout() {
+      await fetch('/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────────
+    function esc(str) {
+      return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function log(msg, cls = 'log-info') {
+      const el = $('log');
+      const line = document.createElement('div');
+      line.className = cls;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      el.appendChild(line);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function showBanner(cls, text) {
+      const b = $('result-banner');
+      b.style.display = 'block'; b.className = cls; b.textContent = text;
+    }
+
+    async function safeJson(res) {
+      const text = await res.text();
+      try { return JSON.parse(text); }
+      catch { throw new Error(`Server error (${res.status}): ${text.slice(0, 200)}`); }
+    }
+
+    // ── Browse Season Codes ───────────────────────────────────────────────────────
+    async function browseSeasons() {
+      const url = $('api-url').value.trim();
+      if (!url) { alert('Please enter an API URL first.'); return; }
+
+      const btn = $('btn-browse-season');
+      btn.disabled = true;
+      btn.textContent = '⏳ Loading…';
 
       try {
-        const res = await fetch('/api/upload-products', {
+        const rawToken = $('auth-token').value.trim();
+        const encryptedToken = rawToken ? await encryptToken(rawToken) : '';
+
+        const res = await fetch('/api/browse-seasons', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ products: batch }),
+          body: JSON.stringify({ url, encryptedToken }),
         });
-        if (res.status === 401) { window.location.href = '/login'; return; }
-
         const data = await safeJson(res);
         if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
-        totalCreated += data.created || 0;
-        totalFailed  += data.failed  || 0;
-        (data.errors || []).forEach(e =>
-          log(`✗ [${start + e.index}] "${e.title}" — ${e.error}`, 'log-err'));
+        const seasons = data.seasons || [];
+        if (seasons.length === 0) { alert('No Season Codes found in the sample records.'); return; }
 
-        const pct = Math.round(((b + 1) / batches.length) * 100);
-        $('progress-bar').style.width = pct + '%';
-        log(`Batch ${b+1}/${batches.length}: ${data.created} created, ${data.failed} failed`,
-            data.failed > 0 ? 'log-warn' : 'log-ok');
-      } catch (err) {
-        log(`Batch ${b+1} error: ${err.message}`, 'log-err');
-        totalFailed += batch.length;
+        const dd = $('season-dropdown');
+        dd.innerHTML = '';
+        seasons.forEach(s => {
+          const div = document.createElement('div');
+          div.textContent = s;
+          div.onclick = () => {
+            $('filter-season').value = s;
+            dd.style.display = 'none';
+          };
+          dd.appendChild(div);
+        });
+        dd.style.display = 'block';
+
+        // Close on outside click
+        const close = (e) => { if (!dd.contains(e.target) && e.target.id !== 'btn-browse-season') { dd.style.display = 'none'; document.removeEventListener('click', close); } };
+        setTimeout(() => document.addEventListener('click', close), 0);
+      } catch (e) {
+        _cryptoKey = null;
+        alert('Error browsing seasons: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍 Browse';
       }
     }
 
-    $('progress-bar').style.width = '100%';
-    $('progress-text').textContent = 'Complete';
+    // ── Fetch & Preview ───────────────────────────────────────────────────────────
+    async function fetchAndPreview() {
+      const url = $('api-url').value.trim();
+      if (!url) { alert('Please enter an API URL.'); return; }
+      if (!$('filter-season').value.trim()) {
+        alert('Please enter a Season Code filter.\n\nFetching all products at once will timeout on the server. Enter a season (e.g. SS25) to limit the results.');
+        $('filter-season').focus();
+        return;
+      }
 
-    if (totalFailed === 0) {
-      showBanner('success', `✓ All ${totalCreated} product(s) uploaded successfully!`);
-      log(`Done — ${totalCreated} created`, 'log-ok');
-    } else if (totalCreated > 0) {
-      showBanner('partial', `⚠ ${totalCreated} uploaded, ${totalFailed} failed. See log for details.`);
-      log(`Done — created: ${totalCreated}, failed: ${totalFailed}`, 'log-warn');
-    } else {
-      showBanner('fail', `✗ All ${totalFailed} product(s) failed. See log for details.`);
-      log(`Done — all ${totalFailed} failed`, 'log-err');
+      $('btn-preview').disabled = true;
+      $('btn-preview').textContent = '⏳ Fetching…';
+      $('btn-upload').disabled = true;
+      $('preview-section').style.display = 'none';
+      fetchedProducts = [];
+
+      try {
+        // Encrypt the token in the browser before sending — never sent in plain text
+        const rawToken = $('auth-token').value.trim();
+        const encryptedToken = rawToken ? await encryptToken(rawToken) : '';
+
+        // Collect optional filters (empty string = omit filter)
+        const filters = [];
+        const skuFilter = $('filter-sku').value.trim();
+        const seasonFilter = $('filter-season').value.trim();
+        if (skuFilter) filters.push({ field: 'No', criteria: skuFilter });
+        if (seasonFilter) filters.push({ field: 'Season_Code', criteria: seasonFilter });
+
+        // Fire both requests in parallel — NAV fetch and Shopify SKU list
+        $('btn-preview').textContent = '⏳ Fetching (this may take a minute)…';
+        const [navRes, skuRes] = await Promise.all([
+          fetch('/api/fetch-from-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, encryptedToken, filters }),
+          }),
+          fetch('/api/shopify-skus'),
+        ]);
+
+        if (navRes.status === 401) { window.location.href = '/login'; return; }
+
+        const [navData, skuData] = await Promise.all([safeJson(navRes), safeJson(skuRes)]);
+
+        if (!navRes.ok) {
+          const msg = navData.error || `HTTP ${navRes.status}`;
+          const detail = navData.detail ? `\n\nUpstream response:\n${navData.detail}` : '';
+          throw new Error(msg + detail);
+        }
+        // Shopify SKU check is best-effort — if Shopify credentials are invalid,
+        // still show NAV products but warn that duplicate check was skipped.
+        let existingSkus = new Set();
+        let skuCheckFailed = false;
+        if (!skuRes.ok) {
+          skuCheckFailed = true;
+          console.warn('Shopify SKU check failed:', skuData.error);
+        } else {
+          existingSkus = new Set(skuData.skus || []);
+        }
+
+        // Filter client-side — no round-trip needed
+        const allProducts = navData.products || [];
+        const newProducts = [];
+        const skipped = [];
+        for (const p of allProducts) {
+          const sku = p.variants?.[0]?.sku?.trim();
+          if (sku && existingSkus.has(sku)) skipped.push({ title: p.title, sku });
+          else newProducts.push(p);
+        }
+
+        fetchedProducts = newProducts;
+
+        const tbody = $('preview-body');
+        tbody.innerHTML = '';
+        fetchedProducts.forEach((p, i) => {
+          const v = p.variants?.[0] || {};
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${i + 1}</td><td><strong>${esc(p.title)}</strong></td>
+          <td>${esc(p.vendor)}</td><td>${esc(p.product_type)}</td>
+          <td>${esc(v.sku)}</td><td>${esc(v.price)}</td>
+          <td>${esc(String(v.inventory_quantity ?? ''))}</td><td>${esc(p.tags)}</td>`;
+          tbody.appendChild(tr);
+        });
+
+        $('preview-heading').textContent = `New Products (${fetchedProducts.length})`;
+
+        let metaText = `${allProducts.length} product(s) fetched from API.`;
+        if (skipped.length > 0) {
+          metaText += ` <span class="skip-note">${skipped.length} already in Shopify — skipped.</span>`;
+        }
+        if (skuCheckFailed) {
+          metaText += ` <span style="color:#d72c0d;font-weight:600">⚠ Shopify duplicate check failed (invalid credentials) — showing all products. Fix Shopify token in Vercel env vars.</span>`;
+        }
+        $('preview-meta').innerHTML = metaText;
+        $('preview-section').style.display = 'block';
+
+        if (fetchedProducts.length === 0) {
+          $('btn-upload').disabled = true;
+          if (skipped.length > 0) alert('All products from the API already exist in Shopify. Nothing to upload.');
+        } else {
+          $('btn-upload').disabled = false;
+        }
+      } catch (e) {
+        // Re-fetch the public key in case of a server cold-start key rotation
+        _cryptoKey = null;
+        alert('Error: ' + e.message);
+      } finally {
+        $('btn-preview').disabled = false;
+        $('btn-preview').textContent = '🔍 Fetch & Preview';
+      }
     }
 
-    $('btn-upload').disabled = false; $('btn-preview').disabled = false;
-  }
-</script>
+    // ── Upload (batched JSON POST → /api/upload-products) ─────────────────────────
+    const BATCH_SIZE = 8;
+
+    async function uploadProducts() {
+      if (!fetchedProducts.length) return;
+      if (!confirm(`Upload ${fetchedProducts.length} new product(s) to Shopify?`)) return;
+
+      $('btn-upload').disabled = true;
+      $('btn-preview').disabled = true;
+      $('progress-section').style.display = 'block';
+      $('result-banner').style.display = 'none';
+      $('log').innerHTML = '';
+      $('progress-bar').style.width = '0%';
+      $('progress-text').textContent = 'Starting upload…';
+
+      log(`Uploading ${fetchedProducts.length} product(s) in batches of ${BATCH_SIZE}…`, 'log-info');
+
+      const batches = [];
+      for (let i = 0; i < fetchedProducts.length; i += BATCH_SIZE) {
+        batches.push(fetchedProducts.slice(i, i + BATCH_SIZE));
+      }
+
+      let totalCreated = 0, totalFailed = 0;
+
+      for (let b = 0; b < batches.length; b++) {
+        const batch = batches[b];
+        const start = b * BATCH_SIZE + 1;
+        const end = Math.min(start + batch.length - 1, fetchedProducts.length);
+        $('progress-text').textContent = `Batch ${b + 1}/${batches.length} — products ${start}–${end}…`;
+
+        try {
+          const res = await fetch('/api/upload-products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ products: batch }),
+          });
+          if (res.status === 401) { window.location.href = '/login'; return; }
+
+          const data = await safeJson(res);
+          if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+          totalCreated += data.created || 0;
+          totalFailed += data.failed || 0;
+          (data.errors || []).forEach(e =>
+            log(`✗ [${start + e.index}] "${e.title}" — ${e.error}`, 'log-err'));
+
+          const pct = Math.round(((b + 1) / batches.length) * 100);
+          $('progress-bar').style.width = pct + '%';
+          log(`Batch ${b + 1}/${batches.length}: ${data.created} created, ${data.failed} failed`,
+            data.failed > 0 ? 'log-warn' : 'log-ok');
+        } catch (err) {
+          log(`Batch ${b + 1} error: ${err.message}`, 'log-err');
+          totalFailed += batch.length;
+        }
+      }
+
+      $('progress-bar').style.width = '100%';
+      $('progress-text').textContent = 'Complete';
+
+      if (totalFailed === 0) {
+        showBanner('success', `✓ All ${totalCreated} product(s) uploaded successfully!`);
+        log(`Done — ${totalCreated} created`, 'log-ok');
+      } else if (totalCreated > 0) {
+        showBanner('partial', `⚠ ${totalCreated} uploaded, ${totalFailed} failed. See log for details.`);
+        log(`Done — created: ${totalCreated}, failed: ${totalFailed}`, 'log-warn');
+      } else {
+        showBanner('fail', `✗ All ${totalFailed} product(s) failed. See log for details.`);
+        log(`Done — all ${totalFailed} failed`, 'log-err');
+      }
+
+      $('btn-upload').disabled = false; $('btn-preview').disabled = false;
+    }
+  </script>
 </body>
+
 </html>
